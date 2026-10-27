@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", sans-serif;
+  --font-display: "IBM Plex Sans", sans-serif;
+  
+  /* Obsidian Teal Premium Theme */
+  --color-obsidian: #09090b;
+  --color-zinc-900: #18181b;
+  --color-zinc-800: #27272a;
+  --color-slate-800: #1e293b;
+  --color-slate-700: #334155;
+  
+  --color-teal-500: #14b8a6;
+  --color-teal-400: #2dd4bf;
+  --color-indigo-500: #6366f1;
+  
+  --color-rescue-red: #ef4444;
+  --color-amber-500: #f59e0b;
+  --color-steel-gray: #94a3b8;
+  --color-warm-white: #f8fafc;
+}
+
+@layer utilities {
+  .solid-panel {
+    @apply bg-zinc-900 border border-zinc-800 shadow-lg;
+  }
+  .card-border {
+    @apply border border-zinc-800/80 shadow-md rounded-xl bg-zinc-900/90 backdrop-blur-xl transition-all duration-300;
+  }
+  .card-border:hover {
+    @apply border-zinc-700 shadow-xl;
+  }
+  .status-active {
+    @apply border border-amber-500/50 text-amber-500 bg-amber-500/10;
+  }
+  .status-medical {
+    @apply border border-teal-500/50 text-teal-400 bg-teal-500/10;
+  }
+  
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-warm-white to-steel-gray;
+  }
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-teal-400 to-indigo-500;
+  }
+  
+  /* Neon Glows */
+  .neon-glow {
+    box-shadow: 0 0 10px rgba(20, 184, 166, 0.3), 0 0 20px rgba(20, 184, 166, 0.1);
+  }
+  .neon-glow-red {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.5), 0 0 30px rgba(239, 68, 68, 0.2);
+  }
+}
+
+body {
+  @apply bg-obsidian text-warm-white antialiased selection:bg-teal-500/30 selection:text-white;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* CRT Scanlines Overlay */
+body::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  z-index: 9999;
+  background-size: 100% 4px;
+  pointer-events: none;
+  opacity: 0.15;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-zinc-800 rounded-full border-2 border-obsidian;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-700;
+}
