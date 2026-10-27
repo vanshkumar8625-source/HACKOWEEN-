@@ -6,13 +6,15 @@ interface DeadlineCountdownProps {
   status?: string;
   actualArrivalAt?: string | null;
   deadlineStatus?: string;
+  isResolved?: boolean;
 }
 
 export const DeadlineCountdown: React.FC<DeadlineCountdownProps> = ({
   deadlineAt,
   status,
   actualArrivalAt,
-  deadlineStatus
+  deadlineStatus,
+  isResolved
 }) => {
   const [timeLeft, setTimeLeft] = useState<{
     hours: number;
@@ -65,7 +67,7 @@ export const DeadlineCountdown: React.FC<DeadlineCountdownProps> = ({
     );
   }
 
-  if (status === 'Resolved') {
+  if (status === 'Resolved' || isResolved) {
     return (
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
         <CheckCircle2 className="w-3 h-3" /> Rescue Resolved

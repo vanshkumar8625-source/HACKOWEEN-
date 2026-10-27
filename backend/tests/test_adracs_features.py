@@ -309,3 +309,24 @@ def test_feature_7_unified_notifications(client, db):
     read_res = client.post(f"/api/notifications/{first_id}/read")
     assert read_res.status_code == 200
     assert read_res.json()["id"] == first_id
+
+def test_ai_damage_assessment_endpoint(client):
+    """
+    Verify AI damage assessment returns structured risk, confidence score, and tactical recommendations.
+    """
+    payload = {
+        "image_data": "preset:bridge_washout",
+        "preset_name": "bridge_washout",
+        "location_name": "Old Mutha River Bridge",
+        "reported_disaster": "Flood"
+    }
+    res = client.post("/api/ai-assistant/analyze-damage", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert data["severity_level"] == "Critical"
+    assert data["confidence_score"] >= 0.8
+    assert data["structural_integrity_percent"] <= 50
+    assert len(data["detected_hazards"]) > 0
+    assert len(data["recommended_resources"]) > 0
+    assert "prefill_incident" in data
+

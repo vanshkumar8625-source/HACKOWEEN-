@@ -35,8 +35,8 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down emergency coordination system...")
 
 app = FastAPI(
-    title="ADRACS - Autonomous Disaster Response and Coordination System",
-    description="Unified Time-Bound Rescue Deadline Tracking, Team Rating, Handover, and Voice-AI Emergency Coordination Engine",
+    title="ResQGrid — AI-Powered Disaster Intelligence & Response Platform",
+    description="Predict Early. Respond Faster. Save Lives. Unified Time-Bound Rescue Deadline Tracking, Team Rating, Handover, and Voice-AI Emergency Coordination Engine",
     version="2.5.0",
     lifespan=lifespan
 )
@@ -69,7 +69,8 @@ app.mount("/socket.io", socket_app)
 @app.get("/")
 def root():
     return {
-        "system": "Dynamic Emergency Resource Coordination - ADRACS",
+        "system": "ResQGrid — Dynamic Emergency Resource Coordination & AI Disaster Intelligence Platform",
+        "tagline": "Predict Early. Respond Faster. Save Lives.",
         "status": "Operational",
         "version": "2.5.0",
         "features": [
@@ -79,7 +80,8 @@ def root():
             "Emergency Backup and Team Handover",
             "AI Voice Emergency Assistant (Meesho-Style)",
             "Grounded Resource Recommendation",
-            "Unified Notification Center"
+            "Unified Notification Center",
+            "AI Satellite/Photo Damage Assessment"
         ]
     }
 

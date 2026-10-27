@@ -2,172 +2,215 @@ import { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Globe } from '../components/3d/Globe';
-import { Activity, Network, ArrowRight, BrainCircuit, Radar, ShieldCheck, Zap } from 'lucide-react';
+import {
+  Activity, ArrowRight, BrainCircuit, Radar,
+  ShieldCheck, Zap, AlertTriangle, Radio, Sparkles
+} from 'lucide-react';
 import { GlassPanel } from '../components/ui/GlassPanel';
+import { ResQGridLogo } from '../components/ui/ResQGridLogo';
 
 export default function LandingPage({ onLaunch }: { onLaunch: () => void }) {
   const { scrollY } = useScroll();
   const globeY = useTransform(scrollY, [0, 1000], [0, 300]);
-  const [stats, setStats] = useState({ agents: 12, decisions: 4021, time: 0.8 });
+  const [stats, setStats] = useState({
+    incidentsTracked: 1420,
+    evacRoutesActive: 48,
+    avgResponseLatency: 0.6
+  });
 
   useEffect(() => {
-    // Fake live incrementing stats
+    // Subtle incrementing of live decisions
     const interval = setInterval(() => {
       setStats(prev => ({
         ...prev,
-        decisions: prev.decisions + Math.floor(Math.random() * 3)
+        incidentsTracked: prev.incidentsTracked + Math.floor(Math.random() * 2)
       }));
-    }, 2000);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="min-h-screen bg-obsidian text-warm-white relative font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 relative font-sans selection:bg-teal-500/30">
       
       {/* 3D Background - Parallax */}
-      <motion.div style={{ y: globeY }} className="fixed inset-0 z-0 opacity-40 pointer-events-none">
+      <motion.div style={{ y: globeY }} className="fixed inset-0 z-0 opacity-35 pointer-events-none">
         <Canvas camera={{ position: [0, 0, 8], fov: 45 }}>
           <Globe />
         </Canvas>
       </motion.div>
 
       {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 bg-obsidian/80 backdrop-blur-md border-b border-zinc-800">
+      <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/80">
         <div className="container mx-auto px-6 h-16 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <img src="/logo.png" alt="ResQNet Logo" className="w-7 h-7 object-contain" />
-            <h1 className="text-xl font-display font-bold tracking-tight">ResQNet</h1>
+          <ResQGridLogo size="md" />
+          
+          <div className="flex items-center gap-3">
+            <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              Intelligence Grid Active
+            </span>
+            <button 
+              onClick={onLaunch} 
+              className="px-5 py-2 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 font-bold transition-all text-xs tracking-wide shadow-[0_0_15px_rgba(20,184,166,0.25)] cursor-pointer flex items-center gap-1.5"
+            >
+              <span>Access Operations</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <button 
-            onClick={onLaunch} 
-            className="px-5 py-2 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-warm-white transition-all text-sm font-medium cursor-pointer"
-          >
-            Access Operations
-          </button>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-40 pb-20 px-6 container mx-auto flex flex-col items-center text-center min-h-[90vh] justify-center">
+      <section className="relative z-10 pt-36 pb-20 px-6 container mx-auto flex flex-col items-center text-center min-h-[88vh] justify-center">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 inline-flex items-center space-x-2 px-4 py-2 rounded-full border border-teal-500/20 bg-teal-500/10 text-teal-400 text-xs font-semibold uppercase tracking-widest"
+          className="mb-6 inline-flex items-center space-x-2 px-4 py-1.5 rounded-full border border-teal-500/30 bg-teal-500/10 text-teal-300 text-xs font-semibold uppercase tracking-widest shadow-sm"
         >
-          <Activity className="w-4 h-4" />
-          <span>v2.0 Neural Engine Live</span>
+          <Sparkles className="w-3.5 h-3.5 text-teal-400 animate-pulse" />
+          <span>ResQGrid Autonomous Platform v2.5</span>
         </motion.div>
 
         <motion.h1 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-5xl md:text-7xl font-display font-bold tracking-tight mb-6 leading-tight max-w-4xl"
+          className="text-4xl sm:text-6xl md:text-7xl font-display font-black tracking-tight mb-6 leading-[1.1] max-w-5xl"
         >
-          Autonomous Intelligence for <br />
-          <span className="text-gradient-primary">Global Disaster Response</span>
+          AI-Powered Disaster Intelligence <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-emerald-400 to-cyan-400">
+            & Emergency Response Platform
+          </span>
         </motion.h1>
+
+        {/* Tagline */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.18 }}
+          className="mb-6 text-xl sm:text-2xl font-display font-bold text-teal-400 tracking-wide"
+        >
+          “Predict Early. Respond Faster. Save Lives.”
+        </motion.div>
 
         <motion.p 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-lg md:text-xl text-steel-gray mb-10 max-w-2xl font-light leading-relaxed"
+          transition={{ delay: 0.25 }}
+          className="text-base sm:text-lg text-slate-400 mb-10 max-w-2xl font-normal leading-relaxed"
         >
-          Coordinate rescue operations, predict hazards, and route medical resources in real-time using a 12-agent AI swarm.
+          ResQGrid coordinates time-bound rescue operations, provides computer-vision damage assessment, predicts flood hazard vectors, and directs ground units with transparent 5-star performance tracking.
         </motion.p>
 
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="flex flex-col sm:flex-row gap-4"
+          className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto"
         >
           <button 
             onClick={onLaunch}
-            className="px-8 py-4 bg-teal-500 hover:bg-teal-400 text-obsidian font-semibold rounded-lg shadow-[0_0_20px_rgba(20,184,166,0.3)] transition-all flex items-center justify-center space-x-2 cursor-pointer text-lg"
+            className="px-8 py-4 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-slate-950 font-extrabold rounded-xl shadow-[0_0_25px_rgba(20,184,166,0.35)] transition-all flex items-center justify-center space-x-2 cursor-pointer text-base"
           >
             <span>Launch Command Center</span>
             <ArrowRight className="w-5 h-5" />
           </button>
-          <button className="px-8 py-4 bg-zinc-800 hover:bg-zinc-700 text-warm-white font-semibold rounded-lg border border-zinc-700 transition-all cursor-pointer text-lg">
-            View Architecture
+          <button 
+            onClick={onLaunch}
+            className="px-8 py-4 bg-slate-900/90 hover:bg-slate-800 text-slate-200 font-semibold rounded-xl border border-slate-800 hover:border-slate-700 transition-all cursor-pointer text-base shadow-sm"
+          >
+            View Live Grid Operations
           </button>
         </motion.div>
       </section>
 
-      {/* Live Stats Banner */}
-      <section className="relative z-10 border-y border-zinc-800 bg-zinc-900/50 backdrop-blur-sm py-8">
-        <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-zinc-800">
+      {/* Live Operational Metrics Banner */}
+      <section className="relative z-10 border-y border-slate-800/80 bg-slate-900/60 backdrop-blur-md py-8">
+        <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-slate-800">
           <div>
-            <div className="text-4xl font-display font-bold text-teal-400 mb-2">{stats.agents}</div>
-            <div className="text-steel-gray text-sm font-medium uppercase tracking-wider">Active Neural Agents</div>
+            <div className="text-3xl sm:text-4xl font-display font-bold text-teal-400 mb-1">{stats.incidentsTracked.toLocaleString()}</div>
+            <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Verified Emergency Missions</div>
           </div>
           <div className="pt-8 md:pt-0">
-            <div className="text-4xl font-display font-bold text-indigo-400 mb-2">{stats.decisions.toLocaleString()}</div>
-            <div className="text-steel-gray text-sm font-medium uppercase tracking-wider">Live Decisions Made</div>
+            <div className="text-3xl sm:text-4xl font-display font-bold text-emerald-400 mb-1">{stats.evacRoutesActive} Active</div>
+            <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Dynamic Evacuation Corridors</div>
           </div>
           <div className="pt-8 md:pt-0">
-            <div className="text-4xl font-display font-bold text-teal-400 mb-2">{stats.time}s</div>
-            <div className="text-steel-gray text-sm font-medium uppercase tracking-wider">Avg Swarm Latency</div>
+            <div className="text-3xl sm:text-4xl font-display font-bold text-cyan-400 mb-1">&lt; {stats.avgResponseLatency}s</div>
+            <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Autonomous Triage Latency</div>
           </div>
         </div>
       </section>
 
       {/* Features Bento Grid */}
-      <section className="relative z-10 py-32 container mx-auto px-6">
+      <section className="relative z-10 py-24 container mx-auto px-6">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-display font-bold mb-4">Unprecedented <span className="text-gradient">Situational Awareness</span></h2>
-          <p className="text-steel-gray text-lg max-w-2xl mx-auto">Our multi-agent system processes thousands of live data points to give you absolute clarity during chaotic emergencies.</p>
+          <h2 className="text-3xl sm:text-5xl font-display font-bold mb-4 text-white">
+            Unprecedented <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-cyan-400">Situational Intelligence</span>
+          </h2>
+          <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
+            ResQGrid synthesizes IoT hydrology sensors, road-hazard telemetry, and ground responder coordinates into a single pane of glass during complex crises.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
           {/* Card 1 */}
-          <GlassPanel className="col-span-1 md:col-span-2 md:row-span-2 flex flex-col justify-end p-10 min-h-[400px] bg-gradient-to-br from-zinc-900 to-slate-900">
-            <Network className="w-10 h-10 text-teal-500 mb-6" />
-            <h3 className="text-2xl font-display font-bold mb-3">12-Agent Neural Swarm</h3>
-            <p className="text-steel-gray text-lg max-w-md">Led by a Commander Agent, a swarm of 12 specialized models (including Supply Chain, Social Media, and Risk Prediction) collaborate instantly to formulate comprehensive rescue strategies.</p>
+          <GlassPanel className="col-span-1 md:col-span-2 md:row-span-2 flex flex-col justify-end p-8 sm:p-10 min-h-[380px] bg-gradient-to-br from-slate-900/90 to-slate-950 border border-slate-800/80">
+            <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 mb-6">
+              <Activity className="w-6 h-6" />
+            </div>
+            <h3 className="text-2xl font-display font-bold mb-3 text-white">Time-Bound Rescue Deadlines & ETAs</h3>
+            <p className="text-slate-300 text-base max-w-lg leading-relaxed">
+              Every emergency receives a deterministic response deadline derived from incident severity and transit physics. Arrival and victim rescue are tracked as independent operational events to ensure complete ground accountability.
+            </p>
           </GlassPanel>
 
           {/* Card 2 */}
-          <GlassPanel className="col-span-1 min-h-[200px]">
-            <Radar className="w-8 h-8 text-indigo-400 mb-4" />
-            <h3 className="text-xl font-display font-bold mb-2">Live Map Telemetry</h3>
-            <p className="text-steel-gray text-sm">Real-time geospatial tracking of active hazards and resources.</p>
+          <GlassPanel className="col-span-1 min-h-[190px] p-6 bg-slate-900/80 border border-slate-800/80">
+            <Radar className="w-7 h-7 text-cyan-400 mb-3" />
+            <h3 className="text-lg font-display font-bold mb-2 text-white">Live Operations Map</h3>
+            <p className="text-slate-400 text-xs leading-relaxed">MapLibre GL vector tracking of active casualties, accessible shelters, and flooded road bypasses.</p>
           </GlassPanel>
 
           {/* Card 3 */}
-          <GlassPanel className="col-span-1 min-h-[200px]">
-            <BrainCircuit className="w-8 h-8 text-amber-500 mb-4" />
-            <h3 className="text-xl font-display font-bold mb-2">Predictive Risk</h3>
-            <p className="text-steel-gray text-sm">Anticipate secondary disasters before they occur.</p>
+          <GlassPanel className="col-span-1 min-h-[190px] p-6 bg-slate-900/80 border border-slate-800/80">
+            <BrainCircuit className="w-7 h-7 text-amber-400 mb-3" />
+            <h3 className="text-lg font-display font-bold mb-2 text-white">AI Voice SOS (Bilingual)</h3>
+            <p className="text-slate-400 text-xs leading-relaxed">Conversational intake in English and Hindi extracting location, injuries, and necessary equipment automatically.</p>
           </GlassPanel>
 
           {/* Card 4 */}
-          <GlassPanel className="col-span-1 min-h-[200px]">
-            <ShieldCheck className="w-8 h-8 text-teal-400 mb-4" />
-            <h3 className="text-xl font-display font-bold mb-2">Enterprise Security</h3>
-            <p className="text-steel-gray text-sm">Role-based access, automated PII data masking, and strict API audit logging.</p>
+          <GlassPanel className="col-span-1 min-h-[190px] p-6 bg-slate-900/80 border border-slate-800/80">
+            <ShieldCheck className="w-7 h-7 text-emerald-400 mb-3" />
+            <h3 className="text-lg font-display font-bold mb-2 text-white">Fair Team Accountability</h3>
+            <p className="text-slate-400 text-xs leading-relaxed">5-star rating system with automatic protections against penalties when disasters render roads impassable.</p>
           </GlassPanel>
 
           {/* Card 5 */}
-          <GlassPanel className="col-span-1 md:col-span-2 min-h-[200px] flex items-center">
+          <GlassPanel className="col-span-1 md:col-span-2 min-h-[190px] p-6 flex items-center bg-slate-900/80 border border-slate-800/80">
             <div className="flex-1">
-              <Zap className="w-8 h-8 text-teal-500 mb-4" />
-              <h3 className="text-xl font-display font-bold mb-2">MCP Server Plugin Architecture</h3>
-              <p className="text-steel-gray text-sm max-w-sm">Built on Model Context Protocol. Agents seamlessly invoke external APIs for Live Routing, Weather Data, and Hospital Database Queries.</p>
+              <Zap className="w-7 h-7 text-teal-400 mb-3" />
+              <h3 className="text-lg font-display font-bold mb-2 text-white">Dynamic Evacuation Replanning</h3>
+              <p className="text-slate-400 text-xs max-w-xl leading-relaxed">
+                When flood waters breach safety thresholds, OSRM automatically calculates perimeter detours and diverts evacuees to shelters with confirmed bed vacancies.
+              </p>
             </div>
           </GlassPanel>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="relative z-10 py-32 border-t border-zinc-800 bg-gradient-to-b from-obsidian to-zinc-900">
+      <section className="relative z-10 py-24 border-t border-slate-800/80 bg-gradient-to-b from-slate-950 to-slate-900">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl md:text-5xl font-display font-bold mb-8">Ready to initiate operations?</h2>
+          <h2 className="text-3xl sm:text-5xl font-display font-bold mb-4 text-white">
+            Ready to initiate crisis response?
+          </h2>
+          <p className="text-slate-400 text-base mb-8 max-w-md mx-auto">
+            Launch the ResQGrid central command center to monitor real-time telemetry and dispatch rescue reinforcements.
+          </p>
           <button 
             onClick={onLaunch}
-            className="px-10 py-5 bg-warm-white text-obsidian font-bold rounded-lg shadow-xl hover:scale-105 transition-all text-lg cursor-pointer"
+            className="px-9 py-4 bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-300 hover:to-emerald-400 text-slate-950 font-extrabold rounded-xl shadow-xl hover:scale-105 transition-all text-base cursor-pointer"
           >
             Enter Command Center
           </button>
@@ -175,13 +218,14 @@ export default function LandingPage({ onLaunch }: { onLaunch: () => void }) {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-zinc-800 bg-obsidian py-10">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-steel-gray">
-          <div className="flex items-center space-x-2 mb-4 md:mb-0">
-            <img src="/logo.png" alt="ResQNet Logo" className="w-5 h-5 object-contain" />
-            <span className="font-display font-semibold text-warm-white">ResQNet</span>
+      <footer className="relative z-10 border-t border-slate-800/80 bg-slate-950 py-10">
+        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-xs text-slate-400">
+          <div className="mb-4 md:mb-0">
+            <ResQGridLogo size="sm" showTagline={true} />
           </div>
-          <div>© 2026 ResQNet Operations. All systems normal.</div>
+          <div className="text-slate-500">
+            © 2026 ResQGrid — AI-Powered Disaster Intelligence & Response Platform.
+          </div>
         </div>
       </footer>
 

@@ -5,7 +5,7 @@ import { io, Socket } from 'socket.io-client';
 import {
   Activity, Users, Home, Package, History,
   ShieldAlert, Droplets, Truck, Layers, HelpCircle,
-  Sparkles, Mic, Bell, Clock
+  Sparkles, Mic, Bell, Clock, BarChart3, Eye, Camera
 } from 'lucide-react';
 
 import { SimulationHeader } from '../components/SimulationHeader';
@@ -16,19 +16,23 @@ import { SheltersView } from '../components/views/SheltersView';
 import { ResourcesView } from '../components/views/ResourcesView';
 import { AuditLogsView } from '../components/views/AuditLogsView';
 import { BackupRequestsView } from '../components/views/BackupRequestsView';
+import { AnalyticsView } from '../components/views/AnalyticsView';
+import { ResponderDashboard } from '../components/dashboards/ResponderDashboard';
+import { CitizenDashboard } from '../components/dashboards/CitizenDashboard';
 
-// New Feature Modals
+// Modals
 import { AIAssistantModal } from '../components/AIAssistantModal';
 import { NotificationDrawer } from '../components/NotificationDrawer';
 import { BackupRequestModal } from '../components/BackupRequestModal';
 import { DeadlineAdjustModal } from '../components/DeadlineAdjustModal';
 import { DelayReviewModal } from '../components/DelayReviewModal';
 import { ResourceRecommendationModal } from '../components/ResourceRecommendationModal';
+import { AIDamageAssessmentModal } from '../components/AIDamageAssessmentModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'map' | 'teams' | 'shelters' | 'resources' | 'audit' | 'backups'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'teams' | 'shelters' | 'resources' | 'audit' | 'backups' | 'analytics'>('map');
   const [userRole, setUserRole] = useState<'admin' | 'responder' | 'citizen'>('admin');
 
   // Data state
@@ -61,6 +65,7 @@ export default function Dashboard() {
   const [backupModalTeamId, setBackupModalTeamId] = useState<number | null>(null);
   const [delayReviewIncident, setDelayReviewIncident] = useState<Incident | null>(null);
   const [recommendationsIncident, setRecommendationsIncident] = useState<Incident | null>(null);
+  const [isDamageAssessmentOpen, setIsDamageAssessmentOpen] = useState(false);
 
   const [, setSelectedIncident] = useState<Incident | null>(null);
   const [viewState, setViewState] = useState({
@@ -454,27 +459,36 @@ export default function Dashboard() {
         onOpenReportModal={() => setIsReportModalOpen(true)}
       />
 
-      {/* Citizen Mode Banner */}
-      {userRole === 'citizen' && (
-        <div className="bg-gradient-to-r from-teal-950/80 via-emerald-950/80 to-zinc-900 border-b border-teal-500/30 px-4 py-2 flex items-center justify-between text-xs shrink-0">
-          <div className="flex items-center gap-2 text-teal-300">
-            <Sparkles className="w-4 h-4 text-teal-400 animate-pulse" />
-            <span>
-              <strong>Citizen Emergency Portal Active:</strong> Use the <strong>Voice SOS Assistant</strong> to report trapped individuals or track your incident reference code without typing.
-            </span>
-          </div>
-          <button
-            onClick={() => setIsAIAssistantOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1 bg-teal-500 hover:bg-teal-400 text-zinc-950 rounded-lg font-bold transition shadow-sm"
-          >
-            <Mic className="w-3.5 h-3.5" />
-            Launch Voice SOS
-          </button>
-        </div>
-      )}
-
-      {/* Main Container */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Dedicated Role-Based Dashboard Routing */}
+      {userRole === 'responder' ? (
+        <ResponderDashboard
+          incidents={incidents}
+          teams={teams}
+          shelters={shelters}
+          routes={routes}
+          simStatus={simStatus}
+          onMarkArrival={handleMarkArrival}
+          onResolveRescue={handleResolveRescue}
+          onOpenExplainDelay={inc => setDelayReviewIncident(inc)}
+          onOpenBackupRequest={(inc, teamId) => {
+            setBackupRequestIncident(inc);
+            setBackupModalTeamId(teamId);
+          }}
+          onRefresh={refreshData}
+          apiUrl={API_URL}
+        />
+      ) : userRole === 'citizen' ? (
+        <CitizenDashboard
+          shelters={shelters}
+          routes={routes}
+          simStatus={simStatus}
+          onOpenVoiceSOS={() => setIsAIAssistantOpen(true)}
+          onOpenReportModal={() => setIsReportModalOpen(true)}
+          apiUrl={API_URL}
+        />
+      ) : (
+        /* Administrator Strategic Command Center Dashboard */
+        <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar Nav */}
         <aside className="w-16 lg:w-56 border-r border-zinc-800 bg-zinc-900/60 flex flex-col py-4 shrink-0">
           <div className="px-5 mb-4 hidden lg:block text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
@@ -537,6 +551,16 @@ export default function Dashboard() {
             </button>
 
             <button
+              onClick={() => setActiveTab('analytics')}
+              className={`w-full flex items-center p-2.5 rounded-lg text-xs font-semibold transition ${
+                activeTab === 'analytics' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'text-zinc-400 hover:bg-zinc-800'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4 shrink-0" />
+              <span className="ml-3 hidden lg:block">Intelligence & Analytics</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('audit')}
               className={`w-full flex items-center p-2.5 rounded-lg text-xs font-semibold transition ${
                 activeTab === 'audit' ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30' : 'text-zinc-400 hover:bg-zinc-800'
@@ -547,8 +571,16 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* Quick Voice SOS launch */}
-          <div className="p-2 border-t border-zinc-800">
+          {/* AI Tools Quick Launch */}
+          <div className="p-2 border-t border-zinc-800 space-y-1.5">
+            <button
+              onClick={() => setIsDamageAssessmentOpen(true)}
+              className="w-full flex items-center justify-center gap-2 p-2 bg-slate-800 hover:bg-slate-700 text-teal-300 font-semibold rounded-xl text-xs border border-slate-700/80 transition"
+            >
+              <Eye className="w-3.5 h-3.5 shrink-0 text-teal-400" />
+              <span className="hidden lg:block">AI Damage Scanner</span>
+            </button>
+
             <button
               onClick={() => setIsAIAssistantOpen(true)}
               className="w-full flex items-center justify-center gap-2 p-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-zinc-950 font-bold rounded-xl text-xs shadow-lg transition"
@@ -706,6 +738,40 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-teal-400" /> Clear Evacuation Route</div>
                 <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-red-500 border-dashed" /> Blocked Road (Flooded)</div>
               </div>
+
+              {/* Top Situational Awareness HUD Ribbon */}
+              <div className="absolute top-4 right-4 z-20 bg-slate-900/90 border border-slate-700/80 rounded-xl px-4 py-2 shadow-2xl backdrop-blur-md flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-slate-400 text-[11px]">ACTIVE:</span>
+                  <span className="font-bold text-white font-mono">{incidents.filter(i => i.status !== 'Resolved').length}</span>
+                </div>
+                <div className="h-4 w-px bg-slate-700" />
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                  <span className="text-slate-400 text-[11px]">CRITICAL:</span>
+                  <span className="font-bold text-red-400 font-mono">{incidents.filter(i => i.severity === 'Critical' && i.status !== 'Resolved').length}</span>
+                </div>
+                <div className="h-4 w-px bg-slate-700" />
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400 text-[11px]">READY UNITS:</span>
+                  <span className="font-bold text-teal-300 font-mono">{teams.filter(t => t.status === 'Available' && !t.is_restricted).length}</span>
+                </div>
+                <div className="h-4 w-px bg-slate-700" />
+                <div className="flex items-center gap-1.5">
+                  <Droplets className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-slate-400 text-[11px]">FLOOD:</span>
+                  <span className="font-bold text-cyan-300 font-mono">{simStatus.flood_level_m.toFixed(1)}m</span>
+                </div>
+                <div className="h-4 w-px bg-slate-700" />
+                <button
+                  onClick={() => setIsDamageAssessmentOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-1 bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 rounded-lg text-[11px] font-semibold transition"
+                >
+                  <Eye className="w-3 h-3 text-teal-400" />
+                  AI Damage Scan
+                </button>
+              </div>
             </div>
           )}
 
@@ -749,6 +815,17 @@ export default function Dashboard() {
             <AuditLogsView logs={auditLogs} />
           )}
 
+          {activeTab === 'analytics' && (
+            <AnalyticsView
+              incidents={incidents}
+              teams={teams}
+              sensors={sensors}
+              shelters={shelters}
+              auditLogs={auditLogs}
+              simStatus={simStatus}
+            />
+          )}
+
           {/* Right Triage & Priority Action Queue (visible in Map mode) */}
           {activeTab === 'map' && (
             <div className="w-80 lg:w-96 border-l border-zinc-800 hidden md:block shrink-0 h-full">
@@ -777,6 +854,7 @@ export default function Dashboard() {
           )}
         </main>
       </div>
+      )}
 
       {/* Incident Intake Modal (Manual Form) */}
       <IncidentModal
@@ -853,6 +931,14 @@ export default function Dashboard() {
           onAllocate={handleAllocateResource}
         />
       )}
+
+      {/* AI Computer Vision Damage Assessment Modal (Phase 4) */}
+      <AIDamageAssessmentModal
+        isOpen={isDamageAssessmentOpen}
+        onClose={() => setIsDamageAssessmentOpen(false)}
+        onAutoCreateIncident={handleCreateIncident}
+        apiUrl={API_URL}
+      />
     </div>
   );
 }

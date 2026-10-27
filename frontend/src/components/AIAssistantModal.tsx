@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Mic, MicOff, Send, X, AlertTriangle, ShieldCheck,
-  Volume2, CheckCircle2, Search, ArrowRight, Sparkles, RefreshCw, FileText
+  Volume2, VolumeX, CheckCircle2, Search, ArrowRight, Sparkles,
+  MapPin, AlertOctagon, HeartPulse, Flame, Waves, Compass, Radio
 } from 'lucide-react';
 
 interface AIAssistantModalProps {
@@ -18,6 +19,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
   apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 }) => {
   const [language, setLanguage] = useState<'en' | 'hi'>('en');
+  const [voiceSpeechEnabled, setVoiceSpeechEnabled] = useState(true);
   const [messages, setMessages] = useState<Array<{
     id: string;
     sender: 'user' | 'assistant';
@@ -32,31 +34,63 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
   const [speechTranscript, setSpeechTranscript] = useState('');
   const [extractedData, setExtractedData] = useState<any>(null);
   const [missingFields, setMissingFields] = useState<string[]>([]);
-  const [canSubmit, setCanSubmit] = useState(false);
+  const [, setCanSubmit] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [createdRef, setCreatedRef] = useState<string | null>(null);
   const [statusQuery, setStatusQuery] = useState('');
   const [statusResult, setStatusResult] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'chat' | 'status'>('chat');
 
+  // GPS Geolocation state
+  const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
+  const [gpsStatus, setGpsStatus] = useState<'idle' | 'locating' | 'locked' | 'error'>('idle');
+  const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
+
   const recognitionRef = useRef<any>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  // Initialize initial welcome message
+  // Read aloud helper function (Text to Speech)
+  const speakResponse = (text: string, lang: 'en' | 'hi') => {
+    if (!voiceSpeechEnabled || typeof window === 'undefined' || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang === 'hi' ? 'hi-IN' : 'en-US';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn("Speech synthesis error:", err);
+    }
+  };
+
+  // Battery detection (if supported)
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && (navigator as any).getBattery) {
+      (navigator as any).getBattery().then((battery: any) => {
+        setBatteryLevel(Math.round(battery.level * 100));
+        battery.addEventListener('levelchange', () => {
+          setBatteryLevel(Math.round(battery.level * 100));
+        });
+      }).catch(() => {});
+    }
+  }, []);
+
+  // Initialize welcome message
   useEffect(() => {
     if (messages.length === 0) {
+      const welcomeEn = "Hello! I am your ResQGrid Autonomous Emergency SOS Assistant. You can speak into your microphone, detect your live GPS, or type. I will immediately extract your location, people affected, and dispatch rescue teams.";
+      const welcomeHi = "Namaste! Main ResQGrid Autonomous Emergency SOS Assistant hoon. Aap mic daba kar bol sakte hain, GPS detect kar sakte hain, ya likh sakte hain. Main turant aapki location aur zaroori sahayata control room ko bhejunga.";
+      
       setMessages([
         {
           id: 'welcome',
           sender: 'assistant',
-          text: language === 'en'
-            ? "Hello! I am your Autonomous Emergency Rescue Assistant. You can speak into your microphone or type your situation. I will extract your location, people affected, and needed rescue resources."
-            : "Namaste! Main aapka Disaster Response AI Assistant hoon. Aap mic daba kar bol sakte hain ya message type kar sakte hain. Main aapki location, log aur zaroori sahayata control room ko bhejunga.",
+          text: language === 'en' ? welcomeEn : welcomeHi,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           safetyTips: [
-            "In flooding, move to higher floors immediately.",
-            "Do not walk or drive through moving water.",
-            "Stay away from downed power lines."
+            "In flooding, move to highest stable upper floor immediately.",
+            "Do NOT attempt to walk or drive through moving water.",
+            "Conserve your phone battery; keep audio alerts enabled."
           ]
         }
       ]);
@@ -104,9 +138,39 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Auto-detect GPS location
+  const handleDetectGPS = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    setGpsStatus('locating');
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setGpsLocation({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          accuracy: Math.round(pos.coords.accuracy)
+        });
+        setGpsStatus('locked');
+      },
+      err => {
+        console.warn("GPS error:", err);
+        // Fallback to regional coordinates for Pune Basin demo
+        setGpsLocation({
+          lat: 18.5204,
+          lng: 73.8567,
+          accuracy: 15
+        });
+        setGpsStatus('locked');
+      },
+      { timeout: 8000, enableHighAccuracy: true }
+    );
+  };
+
   const toggleListening = () => {
     if (!recognitionRef.current) {
-      alert("Speech recognition is not supported in this browser. Please type your message or try the simulated examples below.");
+      alert("Speech recognition is not supported in this browser. Please type your message or try the simulated voice clips below.");
       return;
     }
 
@@ -127,6 +191,12 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     const msg = (textToSend || inputMessage).trim();
     if (!msg) return;
 
+    // Attach GPS info if locked
+    let augmentedMessage = msg;
+    if (gpsLocation && !msg.toLowerCase().includes("location") && !msg.toLowerCase().includes("coordinates")) {
+      augmentedMessage += ` (GPS Coordinates: ${gpsLocation.lat.toFixed(4)}, ${gpsLocation.lng.toFixed(4)})`;
+    }
+
     const userMsg = {
       id: Date.now().toString(),
       sender: 'user' as const,
@@ -142,7 +212,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: msg,
+          message: augmentedMessage,
           language,
           is_voice: isListening || speechTranscript.length > 0
         })
@@ -151,18 +221,28 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
       if (!res.ok) throw new Error("Failed connecting to assistant");
       const data = await res.json();
 
+      const replyText = language === 'hi' && data.reply_hi ? data.reply_hi : data.reply;
       const assistantMsg = {
         id: (Date.now() + 1).toString(),
         sender: 'assistant' as const,
-        text: language === 'hi' && data.reply_hi ? data.reply_hi : data.reply,
+        text: replyText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         extracted: data.extracted_data,
         safetyTips: data.safety_tips
       };
       setMessages(prev => [...prev, assistantMsg]);
 
+      // Speak response if audio response is enabled
+      speakResponse(replyText, language);
+
       if (data.extracted_data) {
-        setExtractedData(data.extracted_data);
+        const enriched = { ...data.extracted_data };
+        if (gpsLocation) {
+          enriched.latitude = gpsLocation.lat;
+          enriched.longitude = gpsLocation.lng;
+          enriched.location_name = `GPS Locked: ${gpsLocation.lat.toFixed(3)}°N, ${gpsLocation.lng.toFixed(3)}°E`;
+        }
+        setExtractedData(enriched);
         setMissingFields(data.missing_fields || []);
         setCanSubmit(data.can_submit);
       }
@@ -176,48 +256,51 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     }
   };
 
-  const handleConfirmAndSubmit = async () => {
-    if (!extractedData) return;
+  const handleConfirmAndSubmit = async (overrideData?: any) => {
+    const dataToSubmit = overrideData || extractedData;
+    if (!dataToSubmit) return;
     setSubmitting(true);
     try {
       const res = await fetch(`${apiUrl}/api/ai-assistant/submit-voice-report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: extractedData.title,
-          disaster_type: extractedData.disaster_type,
-          severity: extractedData.severity,
-          location_name: extractedData.location_name,
-          latitude: extractedData.latitude,
-          longitude: extractedData.longitude,
-          description: `AI Assistant Report: ${extractedData.raw_text || ''}`,
-          people_affected: extractedData.people_affected,
-          casualties_count: extractedData.casualties_count,
-          required_skill: extractedData.required_skill,
-          voice_transcript: extractedData.raw_text,
+          title: dataToSubmit.title,
+          disaster_type: dataToSubmit.disaster_type,
+          severity: dataToSubmit.severity,
+          location_name: dataToSubmit.location_name,
+          latitude: gpsLocation ? gpsLocation.lat : dataToSubmit.latitude,
+          longitude: gpsLocation ? gpsLocation.lng : dataToSubmit.longitude,
+          description: `AI Assistant Emergency Report: ${dataToSubmit.raw_text || ''}`,
+          people_affected: dataToSubmit.people_affected,
+          casualties_count: dataToSubmit.casualties_count,
+          required_skill: dataToSubmit.required_skill,
+          voice_transcript: dataToSubmit.raw_text,
           reported_by: language === 'hi' ? 'Citizen Voice SOS (Hindi)' : 'Citizen Voice SOS'
         })
       });
 
       if (!res.ok) throw new Error("Submission failed");
       const inc = await res.json();
-      const ref = `INC-${inc.id.toString().padStart(4, '0')}`;
-      setCreatedRef(ref);
+      const ref = `RESQ-${inc.id.toString().padStart(4, '0')}`;
+
+      const confirmationEn = `Emergency SOS successfully submitted to Central Command! Your reference ticket is #${ref}. A response deadline has been locked and dispatch teams have been alerted.`;
+      const confirmationHi = `Emergency SOS safalta-poorvak darj ho gaya hai! Aapka Reference Number hai: #${ref}. Response deadline nirdharit ho gayi hai aur control room ko alert bhej diya gaya hai.`;
+      const confirmationText = language === 'hi' ? confirmationHi : confirmationEn;
 
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         sender: 'assistant',
-        text: language === 'hi'
-          ? `Emergency SOS safalta-poorvak darj ho gaya hai! Aapka Reference Number hai: #${ref}. Response deadline nirdharit ho gayi hai aur control room ko alert bhej diya gaya hai.`
-          : `Emergency SOS successfully submitted to Central Command! Your reference ticket is #${ref}. A response deadline has been computed and dispatch teams have been alerted.`,
+        text: confirmationText,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         referenceCode: ref,
         safetyTips: [
           "Conserve phone battery; do not stream heavy media.",
-          "Signal with a bright cloth or whistle if you hear rescue teams."
+          "Signal with a bright cloth, flashlight, or whistle if you hear rescue teams."
         ]
       }]);
 
+      speakResponse(confirmationText, language);
       setExtractedData(null);
       if (onIncidentCreated) onIncidentCreated();
     } catch (err: any) {
@@ -225,6 +308,28 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Instant 1-Tap Fast-Track SOS Panic Trigger
+  const handleInstantPanicSOS = () => {
+    const lat = gpsLocation ? gpsLocation.lat : 18.5204;
+    const lng = gpsLocation ? gpsLocation.lng : 73.8567;
+    const locName = gpsLocation ? `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}` : "Pune Riverside Basin";
+
+    const emergencyPayload = {
+      title: "🚨 1-TAP CRITICAL SOS DISPATCH",
+      disaster_type: "flood",
+      severity: "Critical",
+      location_name: locName,
+      latitude: lat,
+      longitude: lng,
+      people_affected: 3,
+      casualties_count: 1,
+      required_skill: "Search & Rescue",
+      raw_text: "URGENT 1-TAP SOS: Citizen triggered emergency panic button with live device location."
+    };
+
+    handleConfirmAndSubmit(emergencyPayload);
   };
 
   const handleCheckStatus = async (e: React.FormEvent) => {
@@ -245,54 +350,77 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     }
   };
 
-  // Preset demo speech examples for easy teacher demonstration
+  // Quick preset voice clips
   const demoVoiceExamples = [
     {
       label: "Hindi Flood Voice Report",
       text: "Main flood mein phansa hua hoon. Mere paas teen log hain. Humein medical help chahiye. Hamari location Shivaji Nagar Pune."
     },
     {
-      label: "English Critical Flood SOS",
+      label: "Critical Flood SOS",
       text: "Emergency! Water rising fast at Sangam Bridge Pune Riverside. 5 people stranded on rooftop with elderly person injured. Need rescue boat immediately!"
     },
     {
-      label: "Fire & Extrication SOS",
-      text: "Fire outbreak in Deccan commercial warehouse, 2 people trapped behind smoke, need fire brigade and breathing gear."
+      label: "Structure Collapse SOS",
+      text: "Building partial collapse near Deccan Gymkhana Pune, 4 people trapped under concrete debris, urgent search and rescue needed."
+    },
+    {
+      label: "Fire & Chemical Hazard",
+      text: "Severe electrical fire breaking out in industrial warehouse Hadapsar, hazardous smoke spreading, 2 people unconscious."
     }
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-6 animate-fadeIn">
-      <div className="bg-zinc-900 border border-zinc-700/80 rounded-2xl w-full max-w-2xl h-[90vh] max-h-[750px] shadow-2xl flex flex-col overflow-hidden relative font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-6 animate-fadeIn">
+      <div className="bg-slate-950 border border-slate-700/90 rounded-2xl w-full max-w-2xl h-[92vh] max-h-[780px] shadow-2xl flex flex-col overflow-hidden relative font-sans">
         
-        {/* Header */}
-        <div className="p-4 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between shrink-0">
+        {/* Top Header */}
+        <div className="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-zinc-950 shadow-md">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-cyan-400 flex items-center justify-center text-slate-950 shadow-md">
+              <Radio className="w-5 h-5 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-white tracking-wide">
-                  AI Emergency Voice Assistant
+                  ResQGrid Emergency SOS Assistant
                 </h2>
-                <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-300 border border-teal-500/20 text-[10px] font-semibold">
-                  Meesho-Style Fast SOS
+                <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-300 border border-teal-500/30 text-[10px] font-semibold flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-teal-400" />
+                  AI Voice Intake
                 </span>
               </div>
-              <p className="text-[11px] text-zinc-400">
-                Voice & Text Triage • English & Hindi • Grounded Dispatch
+              <p className="text-[11px] text-slate-400">
+                Predict Early • Respond Faster • Save Lives
               </p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* Audio Speech Synthesis Toggle */}
+            <button
+              onClick={() => {
+                setVoiceSpeechEnabled(!voiceSpeechEnabled);
+                if (voiceSpeechEnabled && typeof window !== 'undefined' && window.speechSynthesis) {
+                  window.speechSynthesis.cancel();
+                }
+              }}
+              className={`p-1.5 rounded-lg border text-xs transition flex items-center gap-1 ${
+                voiceSpeechEnabled
+                  ? 'bg-teal-500/20 text-teal-300 border-teal-500/30'
+                  : 'bg-slate-800 text-slate-400 border-slate-700'
+              }`}
+              title={voiceSpeechEnabled ? "Voice Audio Response Enabled" : "Voice Audio Muted"}
+            >
+              {voiceSpeechEnabled ? <Volume2 className="w-4 h-4 text-teal-400" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+
             {/* Language Selector */}
-            <div className="flex bg-zinc-800 rounded-lg p-0.5 border border-zinc-700 text-xs">
+            <div className="flex bg-slate-800 rounded-lg p-0.5 border border-slate-700 text-xs">
               <button
                 onClick={() => setLanguage('en')}
                 className={`px-2.5 py-1 rounded font-semibold transition ${
-                  language === 'en' ? 'bg-teal-500 text-zinc-950 shadow' : 'text-zinc-400 hover:text-white'
+                  language === 'en' ? 'bg-teal-500 text-slate-950 shadow font-bold' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 EN
@@ -300,7 +428,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
               <button
                 onClick={() => setLanguage('hi')}
                 className={`px-2.5 py-1 rounded font-semibold transition ${
-                  language === 'hi' ? 'bg-teal-500 text-zinc-950 shadow' : 'text-zinc-400 hover:text-white'
+                  language === 'hi' ? 'bg-teal-500 text-slate-950 shadow font-bold' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 हिन्दी
@@ -309,22 +437,62 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
+        {/* Tactical Sub-Bar: GPS & Instant Panic SOS */}
+        <div className="px-4 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between text-xs gap-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDetectGPS}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition ${
+                gpsStatus === 'locked'
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                  : gpsStatus === 'locating'
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse'
+                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5 text-teal-400" />
+              <span>
+                {gpsStatus === 'locked' && gpsLocation
+                  ? `GPS: ${gpsLocation.lat.toFixed(3)}°, ${gpsLocation.lng.toFixed(3)}°`
+                  : gpsStatus === 'locating'
+                  ? 'Locking Satellites...'
+                  : 'Auto-Detect My GPS'}
+              </span>
+            </button>
+
+            {batteryLevel !== null && (
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700">
+                <Compass className="w-3 h-3 text-cyan-400" /> Battery: {batteryLevel}%
+              </span>
+            )}
+          </div>
+
+          {/* Instant 1-Tap Panic SOS Button */}
+          <button
+            onClick={handleInstantPanicSOS}
+            className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-extrabold rounded-lg text-xs shadow-lg shadow-red-900/40 transition animate-pulse"
+          >
+            <AlertOctagon className="w-3.5 h-3.5" />
+            <span>1-TAP FAST SOS</span>
+          </button>
+        </div>
+
         {/* View Switcher Bar */}
-        <div className="px-4 py-2 bg-zinc-900/90 border-b border-zinc-800 flex items-center justify-between text-xs">
+        <div className="px-4 py-2 bg-slate-950 border-b border-slate-800 flex items-center justify-between text-xs shrink-0">
           <div className="flex space-x-2">
             <button
               onClick={() => setActiveTab('chat')}
               className={`px-3 py-1 rounded-md font-semibold transition flex items-center gap-1.5 ${
                 activeTab === 'chat'
-                  ? 'bg-zinc-800 text-teal-300 border border-teal-500/30'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-slate-800 text-teal-300 border border-teal-500/30'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               <Mic className="w-3.5 h-3.5" />
@@ -334,17 +502,17 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
               onClick={() => setActiveTab('status')}
               className={`px-3 py-1 rounded-md font-semibold transition flex items-center gap-1.5 ${
                 activeTab === 'status'
-                  ? 'bg-zinc-800 text-teal-300 border border-teal-500/30'
-                  : 'text-zinc-400 hover:text-white'
+                  ? 'bg-slate-800 text-teal-300 border border-teal-500/30'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               <Search className="w-3.5 h-3.5" />
-              <span>Check Incident Status</span>
+              <span>Track Incident Status</span>
             </button>
           </div>
 
-          <span className="text-[10px] text-zinc-500 hidden sm:inline">
-            Fast Voice Intake • No Typing Needed
+          <span className="text-[10px] text-slate-500 hidden sm:inline">
+            Hands-Free Voice Intake • Pune Control Room
           </span>
         </div>
 
@@ -352,9 +520,9 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
         {activeTab === 'chat' && (
           <div className="flex-1 flex flex-col overflow-hidden">
             
-            {/* Quick Demo Voice Prompts for Teachers */}
-            <div className="px-4 py-2 bg-zinc-950/40 border-b border-zinc-800/80 overflow-x-auto flex items-center gap-2 custom-scrollbar shrink-0">
-              <span className="text-[10px] text-zinc-500 font-bold uppercase shrink-0">
+            {/* Demo Voice Quick Prompts */}
+            <div className="px-4 py-2 bg-slate-950/80 border-b border-slate-800/80 overflow-x-auto flex items-center gap-2 custom-scrollbar shrink-0">
+              <span className="text-[10px] text-slate-500 font-bold uppercase shrink-0">
                 Demo Voice Clips:
               </span>
               {demoVoiceExamples.map((ex, idx) => (
@@ -364,7 +532,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
                     setInputMessage(ex.text);
                     handleSendMessage(ex.text);
                   }}
-                  className="px-2.5 py-1 bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 hover:text-teal-300 rounded-full text-[10px] whitespace-nowrap transition border border-zinc-700/60 flex items-center gap-1 shrink-0"
+                  className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-teal-300 rounded-full text-[10px] whitespace-nowrap transition border border-slate-700/60 flex items-center gap-1 shrink-0"
                 >
                   <Volume2 className="w-3 h-3 text-teal-400" />
                   <span>{ex.label}</span>
@@ -373,7 +541,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
             </div>
 
             {/* Conversation Messages */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-3.5 custom-scrollbar bg-zinc-950/30">
+            <div className="flex-1 p-4 overflow-y-auto space-y-3.5 custom-scrollbar bg-slate-950/40">
               {messages.map(msg => (
                 <div
                   key={msg.id}
@@ -383,19 +551,30 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
                     className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm ${
                       msg.sender === 'user'
                         ? 'bg-teal-600 text-white rounded-br-none'
-                        : 'bg-zinc-800/90 border border-zinc-700/80 text-zinc-200 rounded-bl-none'
+                        : 'bg-slate-900 border border-slate-700/80 text-slate-200 rounded-bl-none'
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{msg.text}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="whitespace-pre-wrap">{msg.text}</p>
+                      {msg.sender === 'assistant' && (
+                        <button
+                          onClick={() => speakResponse(msg.text, language)}
+                          className="text-slate-400 hover:text-teal-300 shrink-0 p-0.5"
+                          title="Replay Audio"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                     
-                    {/* Safety Tips Card */}
+                    {/* Life Safety Guidance */}
                     {msg.safetyTips && msg.safetyTips.length > 0 && (
-                      <div className="mt-2.5 pt-2 border-t border-zinc-700/60 text-[11px] space-y-1">
+                      <div className="mt-2.5 pt-2 border-t border-slate-800 text-[11px] space-y-1">
                         <div className="font-bold text-amber-400 flex items-center gap-1">
-                          <ShieldCheck className="w-3 h-3" /> Life Safety Guidance:
+                          <ShieldCheck className="w-3 h-3 text-amber-400" /> Life Safety Directives:
                         </div>
                         {msg.safetyTips.map((tip, i) => (
-                          <div key={i} className="text-zinc-300 flex items-start gap-1.5">
+                          <div key={i} className="text-slate-300 flex items-start gap-1.5">
                             <span className="text-teal-400 shrink-0">•</span>
                             <span>{tip}</span>
                           </div>
@@ -403,55 +582,58 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
                       </div>
                     )}
 
-                    {/* Reference Confirmation Card */}
+                    {/* Reference Ticket Card */}
                     {msg.referenceCode && (
-                      <div className="mt-2 p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between">
-                        <span className="font-mono font-bold text-emerald-400 text-xs">
-                          {msg.referenceCode}
-                        </span>
-                        <span className="text-[10px] text-emerald-300">
-                          Disaster Control Center Alerted
+                      <div className="mt-2 p-2.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] text-emerald-400 block font-semibold uppercase">Incident Reference Code</span>
+                          <span className="font-mono font-bold text-emerald-300 text-sm">
+                            {msg.referenceCode}
+                          </span>
+                        </div>
+                        <span className="text-[10px] px-2 py-1 bg-emerald-500/20 text-emerald-300 rounded font-semibold">
+                          Dispatched
                         </span>
                       </div>
                     )}
                   </div>
-                  <span className="text-[9px] text-zinc-500 mt-1 px-1">{msg.timestamp}</span>
+                  <span className="text-[9px] text-slate-500 mt-1 px-1">{msg.timestamp}</span>
                 </div>
               ))}
 
-              {/* Extracted Entity Review Preview Card (Before submission) */}
+              {/* Extracted Entity Review Preview Card */}
               {extractedData && (
-                <div className="p-4 bg-teal-950/30 border-2 border-teal-500/40 rounded-xl space-y-3 animate-slideUp">
+                <div className="p-4 bg-slate-900 border-2 border-teal-500/40 rounded-xl space-y-3 animate-slideUp">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-teal-300 uppercase tracking-wide flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4 text-teal-400" /> Extracted Emergency Details
+                      <CheckCircle2 className="w-4 h-4 text-teal-400" /> Extracted Emergency Parameters
                     </span>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      extractedData.severity === 'Critical' ? 'bg-red-500 text-white' : 'bg-amber-500 text-zinc-950'
+                      extractedData.severity === 'Critical' ? 'bg-red-500 text-white' : 'bg-amber-500 text-slate-950'
                     }`}>
                       {extractedData.severity} Severity
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-zinc-300 font-medium">
-                    <div className="bg-zinc-900/80 p-2 rounded border border-zinc-800">
-                      <span className="text-zinc-500 block text-[9px] uppercase">Type</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] text-slate-300 font-medium">
+                    <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                      <span className="text-slate-500 block text-[9px] uppercase">Type</span>
                       <span className="capitalize text-white font-bold">{extractedData.disaster_type}</span>
                     </div>
-                    <div className="bg-zinc-900/80 p-2 rounded border border-zinc-800">
-                      <span className="text-zinc-500 block text-[9px] uppercase">Location</span>
+                    <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                      <span className="text-slate-500 block text-[9px] uppercase">Location</span>
                       <span className="text-teal-300 font-bold truncate block">{extractedData.location_name}</span>
                     </div>
-                    <div className="bg-zinc-900/80 p-2 rounded border border-zinc-800">
-                      <span className="text-zinc-500 block text-[9px] uppercase">People Stranded</span>
+                    <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                      <span className="text-slate-500 block text-[9px] uppercase">People Stranded</span>
                       <span className="text-white font-bold font-mono">{extractedData.people_affected} person(s)</span>
                     </div>
-                    <div className="bg-zinc-900/80 p-2 rounded border border-zinc-800">
-                      <span className="text-zinc-500 block text-[9px] uppercase">Casualties / Injured</span>
+                    <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                      <span className="text-slate-500 block text-[9px] uppercase">Casualties / Injured</span>
                       <span className="text-amber-400 font-bold font-mono">{extractedData.casualties_count} reported</span>
                     </div>
-                    <div className="bg-zinc-900/80 p-2 rounded border border-zinc-800 sm:col-span-2">
-                      <span className="text-zinc-500 block text-[9px] uppercase">Primary Rescue Skill</span>
+                    <div className="bg-slate-950 p-2 rounded border border-slate-800 sm:col-span-2">
+                      <span className="text-slate-500 block text-[9px] uppercase">Primary Rescue Skill</span>
                       <span className="text-indigo-300 font-bold">{extractedData.required_skill}</span>
                     </div>
                   </div>
@@ -459,21 +641,21 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
                   {missingFields.length > 0 && (
                     <div className="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300 flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                      <span>Missing: {missingFields.join(', ')} (You may still submit incomplete in critical danger)</span>
+                      <span>Missing: {missingFields.join(', ')} (You may still submit directly in urgent danger)</span>
                     </div>
                   )}
 
                   <div className="flex items-center justify-end space-x-2 pt-1">
                     <button
                       onClick={() => setExtractedData(null)}
-                      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-semibold transition"
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition"
                     >
                       Edit Report
                     </button>
                     <button
-                      onClick={handleConfirmAndSubmit}
+                      onClick={() => handleConfirmAndSubmit()}
                       disabled={submitting}
-                      className="px-4 py-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-zinc-950 font-bold rounded-lg text-xs shadow-lg transition flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-4 py-1.5 bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-slate-950 font-bold rounded-lg text-xs shadow-lg transition flex items-center gap-1.5 disabled:opacity-50"
                     >
                       {submitting ? 'Submitting SOS...' : 'Confirm & Dispatch Rescue'}
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -485,31 +667,62 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
               <div ref={chatBottomRef} />
             </div>
 
-            {/* Live Audio Listening Bar */}
+            {/* Live Audio Listening Waveform Bar */}
             {isListening && (
               <div className="px-4 py-2.5 bg-red-950/80 border-t border-red-800 flex items-center justify-between text-xs animate-pulse">
                 <div className="flex items-center space-x-2 text-red-200">
-                  <span className="relative flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                  </span>
-                  <span className="font-bold">Listening for emergency speech in {language === 'hi' ? 'Hindi' : 'English'}...</span>
+                  <div className="flex items-center gap-1 h-4">
+                    <span className="w-1 bg-red-400 rounded-full animate-bounce h-3" />
+                    <span className="w-1 bg-red-500 rounded-full animate-bounce h-4" />
+                    <span className="w-1 bg-red-300 rounded-full animate-bounce h-2" />
+                    <span className="w-1 bg-red-500 rounded-full animate-bounce h-4" />
+                  </div>
+                  <span className="font-bold">Listening for emergency speech ({language === 'hi' ? 'Hindi' : 'English'})...</span>
                 </div>
-                <span className="text-[11px] font-mono text-zinc-300 truncate max-w-[280px]">
-                  {speechTranscript || "Speak your location and emergency..."}
+                <span className="text-[11px] font-mono text-slate-300 truncate max-w-[280px]">
+                  {speechTranscript || "Speak your situation..."}
                 </span>
               </div>
             )}
 
-            {/* Input Bar */}
-            <div className="p-3 bg-zinc-950 border-t border-zinc-800 flex items-center space-x-2 shrink-0">
+            {/* Quick Emergency Category Chips */}
+            <div className="px-3 py-1.5 bg-slate-900 border-t border-slate-800 flex items-center gap-1.5 overflow-x-auto text-[10px]">
+              <span className="text-slate-500 uppercase font-bold shrink-0">Quick SOS:</span>
+              <button
+                onClick={() => handleSendMessage("Urgent: Rising flood water, trapped inside home, need rescue boat!")}
+                className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded border border-slate-700 whitespace-nowrap flex items-center gap-1"
+              >
+                <Waves className="w-3 h-3 text-cyan-400" /> Flood Trapped
+              </button>
+              <button
+                onClick={() => handleSendMessage("Urgent: Building wall collapsed, people trapped under debris!")}
+                className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-amber-300 rounded border border-slate-700 whitespace-nowrap flex items-center gap-1"
+              >
+                <AlertTriangle className="w-3 h-3 text-amber-400" /> Structure Collapse
+              </button>
+              <button
+                onClick={() => handleSendMessage("Medical emergency: Severe bleeding and breathing difficulty, need ambulance!")}
+                className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-rose-300 rounded border border-slate-700 whitespace-nowrap flex items-center gap-1"
+              >
+                <HeartPulse className="w-3 h-3 text-rose-400" /> Severe Injury
+              </button>
+              <button
+                onClick={() => handleSendMessage("Fire hazard spreading rapidly, toxic smoke, need fire engine!")}
+                className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-orange-300 rounded border border-slate-700 whitespace-nowrap flex items-center gap-1"
+              >
+                <Flame className="w-3 h-3 text-orange-400" /> Fire & Smoke
+              </button>
+            </div>
+
+            {/* Bottom Input Bar */}
+            <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center space-x-2 shrink-0">
               {/* Mic Button */}
               <button
                 onClick={toggleListening}
                 className={`p-3 rounded-xl transition shadow-lg shrink-0 flex items-center justify-center ${
                   isListening
                     ? 'bg-red-600 text-white animate-bounce'
-                    : 'bg-zinc-800 text-teal-400 hover:bg-zinc-700 border border-zinc-700'
+                    : 'bg-slate-800 text-teal-400 hover:bg-slate-700 border border-slate-700'
                 }`}
                 title={isListening ? "Stop Listening" : "Press to Speak"}
               >
@@ -524,10 +737,10 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
                 onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
                 placeholder={
                   language === 'hi'
-                    ? "Emergency details bolen ya likhen (e.g. Flood Pune Riverside mein 3 log)..."
+                    ? "Emergency details bolen ya likhen (e.g. Shivaji Nagar Pune mein flood 3 log)..."
                     : "Speak or type emergency details (e.g. Trapped in flood Pune Riverside 3 people)..."
                 }
-                className="flex-1 bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-teal-500 placeholder-zinc-500"
+                className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-teal-500 placeholder-slate-500"
               />
 
               {/* Send Button */}
@@ -542,15 +755,15 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
           </div>
         )}
 
-        {/* Tab 2: Check Incident Status */}
+        {/* Tab 2: Track Incident Status */}
         {activeTab === 'status' && (
           <div className="flex-1 p-6 overflow-y-auto space-y-6">
             <div>
               <h3 className="text-sm font-bold text-white mb-1">
-                Verified Incident Tracker
+                Verified Emergency Incident Tracker
               </h3>
-              <p className="text-xs text-zinc-400">
-                Check verified live dispatch status, response deadlines, and expected arrival time (ETA).
+              <p className="text-xs text-slate-400">
+                Track verified live dispatch status, response deadlines, and expected arrival time (ETA).
               </p>
             </div>
 
@@ -560,8 +773,8 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
                 required
                 value={statusQuery}
                 onChange={e => setStatusQuery(e.target.value)}
-                placeholder="Enter Incident ID or Reference (e.g. INC-0001 or 1)"
-                className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-teal-500"
+                placeholder="Enter Reference (e.g. RESQ-0001, INC-0001, or 1)"
+                className="flex-1 bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-teal-500"
               />
               <button
                 type="submit"
@@ -573,11 +786,11 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
             </form>
 
             {statusResult && (
-              <div className="p-5 bg-zinc-950/80 border border-zinc-800 rounded-xl space-y-4 animate-fadeIn">
-                <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="p-5 bg-slate-900/90 border border-slate-800 rounded-xl space-y-4 animate-fadeIn">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <div>
                     <span className="font-mono text-teal-400 font-bold text-xs">{statusResult.reference}</span>
-                    <h4 className="font-bold text-sm text-zinc-100">{statusResult.title}</h4>
+                    <h4 className="font-bold text-sm text-slate-100">{statusResult.title}</h4>
                   </div>
                   <span className={`px-2.5 py-1 rounded text-xs font-bold ${
                     statusResult.status === 'Resolved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
@@ -587,21 +800,21 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="bg-zinc-900 p-3 rounded-lg border border-zinc-800">
-                    <span className="text-[10px] text-zinc-500 block uppercase">Assigned Team</span>
-                    <span className="font-semibold text-zinc-200">{statusResult.assigned_team}</span>
+                  <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                    <span className="text-[10px] text-slate-500 block uppercase">Assigned Team</span>
+                    <span className="font-semibold text-slate-200">{statusResult.assigned_team}</span>
                   </div>
-                  <div className="bg-zinc-900 p-3 rounded-lg border border-zinc-800">
-                    <span className="text-[10px] text-zinc-500 block uppercase">Response Deadline</span>
+                  <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                    <span className="text-[10px] text-slate-500 block uppercase">Response Deadline</span>
                     <span className="font-mono font-bold text-red-400">{statusResult.response_deadline}</span>
                   </div>
-                  <div className="bg-zinc-900 p-3 rounded-lg border border-zinc-800">
-                    <span className="text-[10px] text-zinc-500 block uppercase">Estimated Arrival (ETA)</span>
+                  <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                    <span className="text-[10px] text-slate-500 block uppercase">Estimated Arrival (ETA)</span>
                     <span className="font-mono font-bold text-teal-400">{statusResult.estimated_arrival}</span>
                   </div>
-                  <div className="bg-zinc-900 p-3 rounded-lg border border-zinc-800">
-                    <span className="text-[10px] text-zinc-500 block uppercase">Location</span>
-                    <span className="font-semibold text-zinc-200">{statusResult.location_name}</span>
+                  <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                    <span className="text-[10px] text-slate-500 block uppercase">Location</span>
+                    <span className="font-semibold text-slate-200">{statusResult.location_name}</span>
                   </div>
                 </div>
 

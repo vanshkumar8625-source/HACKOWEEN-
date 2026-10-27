@@ -444,3 +444,23 @@ class SimulationStatusResponse(BaseModel):
     shelter_occupancy_total: int
     audit_events_count: int
 
+# --- AI Damage Assessment ---
+class DamageAnalysisRequest(BaseModel):
+    image_url: Optional[str] = None
+    preset_name: Optional[str] = None
+    location_name: Optional[str] = "Pune Riverbank Basin"
+    reported_disaster: Optional[str] = "Flood"
+
+class DamageAnalysisResponse(BaseModel):
+    damage_classification: str
+    confidence_score: float
+    severity_level: str
+    detected_hazards: List[str]
+    estimated_casualties_risk: str
+    recommended_skills: List[str]
+    recommended_resources: List[str]
+    structural_integrity_percent: int
+    tactical_guidance: str
+    prefill_incident: Dict[str, Any]
+
+

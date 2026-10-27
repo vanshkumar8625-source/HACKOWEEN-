@@ -37,49 +37,70 @@ export const SimulationHeader: React.FC<SimulationHeaderProps> = ({
       
       {/* Brand & Simulation Badge */}
       <div className="flex items-center space-x-3 sm:space-x-4">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-lg bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-400 font-extrabold text-sm shadow">
-            AD
+        <div className="flex items-center space-x-2.5">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-indigo-600 p-0.5 shadow-[0_0_12px_rgba(20,184,166,0.3)] flex items-center justify-center">
+            <div className="w-full h-full bg-slate-950 rounded-[6px] flex items-center justify-center">
+              <svg className="w-4 h-4 text-teal-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                <path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" />
+                <path d="M12 8v8" />
+                <path d="M8 12h8" />
+              </svg>
+            </div>
           </div>
           <div>
-            <h1 className="text-xs sm:text-sm font-bold tracking-wide text-zinc-100 flex items-center gap-1.5 sm:gap-2">
-              ADRACS Command
+            <h1 className="text-xs sm:text-sm font-display font-black tracking-wide text-zinc-100 flex items-center gap-1.5 sm:gap-2">
+              <span>ResQ<span className="text-teal-400">Grid</span> Command</span>
               <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded font-extrabold bg-amber-500/20 text-amber-400 border border-amber-500/30 hidden md:flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
                 SIMULATED DATA
               </span>
             </h1>
-            <p className="text-[10px] sm:text-[11px] text-zinc-400">Time-Bound Rescue & Coordination System</p>
+            <p className="text-[10px] sm:text-[11px] text-teal-400/90 font-medium">Predict Early. Respond Faster. Save Lives.</p>
           </div>
         </div>
       </div>
 
       {/* Role Switcher (Student / Teacher Demo Control) */}
-      <div className="hidden lg:flex items-center bg-zinc-950 p-1 rounded-lg border border-zinc-800 text-[11px]">
-        <span className="text-zinc-500 px-2 font-bold uppercase text-[9px]">Demo Role:</span>
+      <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-zinc-800 text-[11px] shadow-inner">
+        <span className="text-zinc-500 px-2 font-bold uppercase text-[9px] hidden sm:inline">Role:</span>
         <button
           onClick={() => onRoleChange('admin')}
-          className={`px-2.5 py-1 rounded-md font-semibold transition ${
-            userRole === 'admin' ? 'bg-teal-500 text-zinc-950 font-bold shadow' : 'text-zinc-400 hover:text-white'
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
+            userRole === 'admin'
+              ? 'bg-gradient-to-r from-teal-500 to-emerald-500 text-zinc-950 shadow-md'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
           }`}
+          title="Switch to Administrator Strategic Command Center"
         >
-          Administrator
+          <span className="text-xs">🛡️</span>
+          <span className="hidden md:inline">Administrator</span>
+          <span className="md:hidden text-[10px]">Admin</span>
         </button>
         <button
           onClick={() => onRoleChange('responder')}
-          className={`px-2.5 py-1 rounded-md font-semibold transition ${
-            userRole === 'responder' ? 'bg-teal-500 text-zinc-950 font-bold shadow' : 'text-zinc-400 hover:text-white'
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
+            userRole === 'responder'
+              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-zinc-950 shadow-md'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
           }`}
+          title="Switch to Field Responder Tactical Console"
         >
-          Field Responder
+          <span className="text-xs">🚒</span>
+          <span className="hidden md:inline">Field Responder</span>
+          <span className="md:hidden text-[10px]">Responder</span>
         </button>
         <button
           onClick={() => onRoleChange('citizen')}
-          className={`px-2.5 py-1 rounded-md font-semibold transition ${
-            userRole === 'citizen' ? 'bg-teal-500 text-zinc-950 font-bold shadow' : 'text-zinc-400 hover:text-white'
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
+            userRole === 'citizen'
+              ? 'bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-md animate-pulse'
+              : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
           }`}
+          title="Switch to Citizen Emergency Lifeline Portal"
         >
-          Citizen
+          <span className="text-xs">🆘</span>
+          <span className="hidden md:inline">Citizen Portal</span>
+          <span className="md:hidden text-[10px]">Citizen</span>
         </button>
       </div>
 

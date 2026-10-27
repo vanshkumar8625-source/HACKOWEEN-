@@ -1,22 +1,48 @@
-# 🚨 Dynamic Emergency Resource Coordination Command Center (ADRACS)
+# 🛡️ ResQGrid — AI-Powered Disaster Intelligence & Response Platform
 
-> **Autonomous Disaster Response and Coordination System (ADRACS)**  
-> An upgraded, full-stack disaster-response coordination platform featuring **time-bound rescue deadlines**, **fair team performance evaluation**, **emergency backup & handover**, and **AI voice-driven incident intake**.
+> ### *“Predict Early. Respond Faster. Save Lives.”*
+>
+> A mission-critical, AI-driven disaster response command and intelligence platform. ResQGrid equips civil defense authorities, incident commanders, emergency response units, and public citizens with real-time situational awareness, predictive hydrological modeling, drone aerial damage assessment, time-bound rescue deadlines, and automated resource coordination.
 
 ---
 
-## 🌟 Executive Summary & Key Upgrades
+## 🌟 Executive Summary & Core Capabilities
 
-During critical emergencies such as flash floods and structural collapses, rescue operations require strict coordination, fair team accountability, and rapid citizen access:
-* **Time-Bound Rescue Deadlines:** Dynamic response deadlines computed automatically from incident severity and transit distance.
-* **Separation of Arrival vs. Resolution:** Estimated arrival time (ETA) is never treated as proof of victim rescue; arrival and resolution are tracked independently.
-* **Fair 5-Star Team Performance Rating:** Objective rating based on on-time arrival %, mission success, and victim safety, with **mandatory protections** against penalties when disasters render roads impassable.
-* **Delay Consequences & Supervisor Review:** Automated delay detection, responder explanation logging, and administrative accountability (Warning, Training, Temporary Assignment Restriction).
-* **Emergency Backup & Handover:** Field teams can request tactical backup (Helicopter, Rescue Boat, Ambulance, Fire Brigade, Comms, Personnel) with central coordinator dispatch and partial/complete handover modes.
-* **AI Emergency Assistant with Voice Reporting (Meesho-Style):** Bilingual (English & Hindi) voice and text conversational intake powered by Web Speech API with NLP entity extraction, missing information prompts, life-saving safety guidance, and status tracking by reference ID.
-* **Grounded Resource Recommendations:** Automatic equipment recommendations verified against live database inventory before dispatch.
-* **Unified Notification Center:** Real-time alert notifications for critical incidents, approaching/missed deadlines, backup requests, and status changes.
-* **Demo Role Switcher:** Instant perspective switching between **Administrator / Control Room**, **Field Responder Team**, and **Citizen / Public** for seamless classroom presentation to instructors.
+During catastrophic events (flash floods, severe cyclonic storms, urban inundation, bridge washouts, and building collapses), seconds determine survival. **ResQGrid** bridges the gap between field chaos and strategic command through eight core pillars:
+
+1. **Integrated Command Center & Real-Time Situational Awareness:**
+   - Multi-metric operations HUD displaying active emergencies, critical severity ratios, ready rescue units, real-time flood gauges, and population impact counters.
+   - Live MapLibre GL geospatial map rendering dynamically degraded evacuation routes, shelter capacities, sensor telemetry, and incident markers.
+
+2. **AI Drone Damage Assessment & Computer Vision Scanner:**
+   - Evaluates aerial and structural imagery with confidence scores (0.0 to 1.0) and structural integrity percentages.
+   - Detects compound hazards (submerged debris, live electrical wiring, toxic runoff, structural fracturing) and pre-fills actionable emergency incidents with 1-click dispatch.
+
+3. **Time-Bound Rescue Deadlines & Ticking Priority Queue:**
+   - Dynamically calculates response deadlines based on incident severity (Critical: 25–45m, High: 60–90m) and real-time transit distance.
+   - Strictly separates **Arrival On Scene** from **Resolution Complete**, preventing false completion claims.
+   - Supervised deadline extensions with mandatory justification logging into an immutable audit trail.
+
+4. **Objective 5-Star Team Performance & Hazard Shields:**
+   - Evaluates field units on arrival punctuality, rescue effectiveness, victim safety, and equipment utilization.
+   - **Disaster Hazard Protection:** Automatically waives delay penalties when roads are flooded or blocked, protecting responders from unfair performance scoring.
+   - Integrated dispute filing and supervisory rating reviews.
+
+5. **Operational Accountability & Delay Review:**
+   - Automatically flags overdue responses and prompts responders for structured operational justifications (*Road Inundated, Route Blocked, Extreme Weather, Equipment Failure*).
+   - Supervisors issue calibrated rulings: *Justified Exception*, *Formal Advisory*, *Refresher Training*, or *Temporary Operational Restriction*.
+
+6. **Emergency Backup & Mission Handover:**
+   - Tactical field escalation enabling units to request specialized reinforcements (Ambulances, Rescue Boats, Helicopters, HAZMAT, Comms, Heavy Rescue).
+   - Supports both **Partial Assistance** (multi-unit joint taskforce) and **Complete Mission Handover** (primary unit relieved).
+
+7. **Bilingual Voice SOS Emergency Assistant (Citizen Portal):**
+   - Natural-language speech intake powered by the Web Speech API supporting **English** and **Hindi (हिंदी)**.
+   - Named Entity Recognition (NER) extracts disaster type, landmark coordinates, casualty count, injuries, and required assets.
+   - Issues persistent reference tracking codes (e.g., `RESQ-2026-XXXX`) allowing citizens to monitor rescue progress live.
+
+8. **Grounded Resource Inventory Verification:**
+   - Recommends tactical equipment tailored to incident parameters and verifies live warehouse quantities before dispatch, guaranteeing that phantom supplies are never ordered.
 
 ---
 
@@ -24,223 +50,193 @@ During critical emergencies such as flash floods and structural collapses, rescu
 
 ```mermaid
 flowchart TB
-    subgraph UI["Frontend Command Center (React 19 + MapLibre GL + Tailwind)"]
-        Nav["Simulation Header & Demo Role Switcher (Admin / Responder / Citizen)"]
-        Map["MapLibre GL Live Operations Map"]
-        Queue["Priority Queue with Live Deadline Countdown"]
-        AIAssistant["AI Voice Assistant Modal (Hindi / English Speech Intake)"]
-        BackupView["Backup Requests & Handover Dispatch"]
-        TeamsView["Rescue Teams with 5-Star Ratings & Disputes"]
-        NotifDrawer["Unified Notification Alert Drawer"]
+    subgraph UI["ResQGrid Command Center (React 19 + MapLibre GL + Tailwind CSS)"]
+        Nav["Simulation Header & Role Switcher (Admin / Responder / Citizen)"]
+        HUD["Situational Awareness Top HUD & Analytics View"]
+        Map["MapLibre GL Interactive Geospatial Map (Carto Dark)"]
+        Queue["Ticking Incident Priority Queue & Deadline Timers"]
+        AIAssistant["Bilingual Voice SOS Assistant (Speech-to-Text NER)"]
+        DamageModal["AI Aerial Damage Assessment & CV Scanner"]
+        BackupView["Tactical Backup Requests & Handover Dispatch"]
+        TeamsView["Rescue Units, 5-Star Ratings & Dispute Resolution"]
+        NotifDrawer["Unified Incident & Escalation Notification Center"]
     end
 
-    subgraph API["Backend API (FastAPI + Asynchronous Engine + WebSockets)"]
-        Deadlines["Deadline & ETA Service (Haversine + Severity)"]
-        Ratings["Fair Team Rating Engine (Disaster Protection)"]
-        AIService["AI Voice & NLP Extractor (Bilingual NER)"]
-        BackupRouter["Backup Request & Handover Coordinator"]
-        RecomService["Grounded Resource Inventory Checker"]
-        NotifService["Real-Time Notification Dispatcher"]
-        SimEngine["Repeatable Disaster Simulator Engine"]
-        RouterService["Road-Closure-Aware Routing (OSRM)"]
+    subgraph API["Backend Intelligence Engine (FastAPI + Async Python + Socket.IO)"]
+        DeadlineSvc["Dynamic Deadline & ETA Engine (Haversine + Severity Matrix)"]
+        RatingSvc["Fair Team Performance & Hazard Shield Engine"]
+        AIEngine["AI Intake & Damage Analysis Service (Confidence Scoring)"]
+        BackupCoord["Emergency Backup & Handover Coordinator"]
+        RecomSvc["Grounded Stock Availability Verifier"]
+        NotifSvc["Real-Time Dispatch Notification Engine"]
+        SimLoop["Disaster Scenario Simulator (Hydrology & Route Degradation)"]
     end
 
-    subgraph Storage["Unified Relational Data Model (SQLite Auto-Migrated)"]
-        Incidents["Incidents (Deadlines, ETAs, Actual Arrival, Voice Transcripts)"]
-        Teams["Rescue Teams (Ratings, On-Time %, Restrictions)"]
-        TeamRatings["TeamRatings (Audit Scores, Dispute Flags, Reviews)"]
-        DelayReviews["DelayReviews (Categories, Reasons, Admin Actions)"]
-        BackupRequests["BackupRequests (Requested Resources, Handover Type, ETA)"]
-        Notifications["Notifications (Alerts, Severities, Read Status)"]
-        Resources["Resources (Verified Stock, Available Qty)"]
-        Shelters["Shelters (Capacity, Occupancy, Rations)"]
+    subgraph Storage["Unified Data Layer (SQLAlchemy 2.0 + SQLite Auto-Migration)"]
+        Incidents["Incidents (Deadlines, Arrival, Severity, Status)"]
+        Teams["Rescue Teams (Rating, Specialization, Restrictions)"]
+        Ratings["TeamRatings (Scoring Rubrics, Disputes, Reviews)"]
+        DelayReviews["DelayReviews (Categories, Explanations, Rulings)"]
+        BackupRequests["BackupRequests (Assets, Handover Mode, ETAs)"]
+        Notifications["Notifications (Real-Time Alert Feed)"]
+        Resources["Resources (Verified Warehouse Quantities)"]
+        Shelters["Shelters (Capacity, Occupancy, Vacancy)"]
         AuditLogs["PlanAuditLogs (Immutable Decision History)"]
     end
 
-    UI <-->|REST API + Socket.IO WSS| API
+    UI <-->|REST APIs + Socket.IO WSS| API
     API <--> Storage
-    SimEngine -->|Surge Events| Deadlines
-    Deadlines -->|Delay Detection| NotifService
-    NotifService -->|Broadcasts Alerts| UI
+    SimLoop -->|Water Level Surges| DeadlineSvc
+    DeadlineSvc -->|Delay Detection| NotifSvc
+    NotifSvc -->|Broadcasts Alerts| UI
 ```
 
 ---
 
-## 📦 Upgraded Features & Implementation Map
+## 🎯 3 Dedicated Role-Based Dashboards
 
-| Feature Module | Backend Service & Endpoints | Frontend Component(s) | Key Guarantee & Logic |
-| :--- | :--- | :--- | :--- |
-| **1. Emergency Rescue Deadline & Tracking** | [`backend/services/deadline_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/deadline_service.py)<br>`POST /api/incidents/{id}/mark-arrival`<br>`POST /api/incidents/{id}/resolve`<br>`POST /api/incidents/{id}/adjust-deadline` | [`frontend/src/components/DeadlineCountdown.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/DeadlineCountdown.tsx)<br>[`frontend/src/components/DeadlineAdjustModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/DeadlineAdjustModal.tsx) | Deadlines: Critical=25-45m, High=60-90m, Medium=120m, Low=240m + transit time. Live ticking countdown with amber/red alerts. Separate arrival and resolution tracking. Admin adjustments log mandatory reasons. |
-| **2. Rescue Team Performance Rating** | [`backend/services/rating_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/rating_service.py)<br>`GET /api/teams/{id}/ratings`<br>`POST /api/teams/ratings/{id}/dispute`<br>`POST /api/teams/ratings/{id}/review` | [`frontend/src/components/views/TeamsView.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/views/TeamsView.tsx) | 5-star scoring formula. Teams cannot self-edit. Approved disaster exceptions (flooded bridges, roadblocks) are completely shielded from delay penalties. Supervisors can adjust disputed ratings. |
-| **3. Delay Consequences & Accountability** | [`backend/api/incidents.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/incidents.py)<br>`POST /api/incidents/{id}/explain-delay`<br>`POST /api/incidents/{id}/review-delay`<br>`POST /api/teams/{id}/restriction` | [`frontend/src/components/DelayReviewModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/DelayReviewModal.tsx) | Missed deadlines automatically notify admin. Team provides operational explanation (Road Blocked, Severe Weather, etc.). Admin reviews and issues corrective actions: Warning, Review, Training, or Temporary Assignment Restriction. |
-| **4. Emergency Assistance & Team Handover** | [`backend/api/backup_requests.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/backup_requests.py)<br>`POST /api/backup-requests/`<br>`POST /api/backup-requests/{id}/assign`<br>`POST /api/backup-requests/{id}/status` | [`frontend/src/components/BackupRequestModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/BackupRequestModal.tsx)<br>[`frontend/src/components/views/BackupRequestsView.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/views/BackupRequestsView.tsx) | Assigned team clicks "Request Backup" to request Helicopters, Boats, Ambulances, Comms, or Personnel. Single incident record maintained. Supports Partial Assistance and Complete Handover. Coordinator assigns verified available teams. |
-| **5. AI Emergency Assistant with Voice Reporting** | [`backend/services/ai_assistant_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/ai_assistant_service.py)<br>`POST /api/ai-assistant/chat`<br>`POST /api/ai-assistant/submit-voice-report`<br>`GET /api/ai-assistant/status/{ref}` | [`frontend/src/components/AIAssistantModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/AIAssistantModal.tsx) | Meesho-style voice & text chatbot. Web Speech API with Hindi & English support. Extracts emergency type, location, affected count, injuries, and needed resources. Directly creates incident in backend and returns reference code. Checks live status. |
-| **6. Grounded Resource Recommendations** | [`backend/services/recommendation_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/recommendation_service.py)<br>`GET /api/incidents/{id}/recommendations` | [`frontend/src/components/ResourceRecommendationModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/ResourceRecommendationModal.tsx) | Automatically matches incident characteristics to supplies. Checks live `available_qty` in the database—never claims assets are available if stock is 0. Coordinator approves allocation. |
-| **7. Unified Notifications & Central Dashboard** | [`backend/services/notification_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/notification_service.py)<br>`GET /api/notifications/`<br>`POST /api/notifications/{id}/read` | [`frontend/src/components/NotificationDrawer.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/NotificationDrawer.tsx) | Unified alert center for critical incidents, upcoming/missed deadlines, backup requests, team assignments, and status updates. Unread badge with slide-out drawer. |
-| **8. Database Auto-Migration & Integrity** | [`backend/database/models.py`](file:///Users/vanshkumar/Downloads/H2/backend/database/models.py)<br>[`backend/database/db.py`](file:///Users/vanshkumar/Downloads/H2/backend/database/db.py) | Full schema preservation | SQLite auto-migration using `PRAGMA table_info` and `ALTER TABLE ... ADD COLUMN` ensures existing database files seamlessly upgrade without data loss. |
+ResQGrid provides three completely isolated, role-tailored dashboards accessible instantly via the top navigation role switcher:
+
+### 1. 🛡️ Administrator Strategic Command Center (`Admin Mode`)
+* **Strategic Operations Map:** Multi-layer MapLibre GL geospatial map rendering all incidents, rated rescue teams, accessible evacuation shelters, and live hydrology sensors.
+* **Incident Priority Queue:** Real-time triage with dynamic deadline countdown timers, auto-assign algorithms, and manual supervisory overrides.
+* **Situational Intelligence & Analytics:** Live KPI summary cards, river height telemetry gauges, disaster category distribution charts, and decision audit logs.
+* **AI Drone Damage Assessment Scanner:** Aerial imagery computer vision analysis with confidence metrics and 1-click incident dispatch.
+* **Logistics & Resource Coordination:** Real-time shelter bed capacity tracking and warehouse supply allocation.
+
+### 2. 🚒 Tactical Field Responder Terminal (`Responder Mode`)
+* **Unit Identity & Profile:** Active team selector with live 5-star performance rating, on-time response rate, completed missions count, and restriction status.
+* **Active Mission Focus:** Highlights the assigned emergency with ticking response deadlines, victim count, and severity indicators.
+* **Field Action Controls:**
+  - 📌 **"Mark Arrived On Scene"**: Verifies arrival timestamp against deadline and locks punctuality.
+  - ⏱️ **"Report / Explain Delay"**: Submits operational delay explanations to activate approved disaster hazard shields.
+  - 🚁 **"Request Tactical Backup"**: Requests helicopters, rescue boats, ambulances, comms, or mission handover.
+  - ✅ **"Complete & Resolve Rescue"**: Records victim safety status and receives automated 5-star performance rating.
+* **Tactical Mission Map:** Route navigation showing clear corridors in teal vs. flooded/blocked roads in red dashed lines, along with nearest accessible hospitals and shelters for casualty drop-off.
+
+### 3. 🆘 Citizen Emergency Lifeline Portal (`Citizen Mode`)
+* **Emergency Lifeline Console:** High-visibility hotlines (National 112, Ambulance 108, Municipal Disaster Cell).
+* **3 Fast Lifesaving Actions:**
+  - 🎙️ **"Bilingual Voice SOS Assistant"**: Speech-to-text reporting in Hindi and English with automatic landmark and casualty extraction.
+  - 🚨 **"1-Tap Emergency Panic SOS"**: Instantly transmits device GPS coordinates to Central Dispatch with zero typing.
+  - 📝 **"Detailed Incident Report"**: Web form submission for structured reports.
+* **Live Emergency Ticket Tracker:** Citizens enter their reference code (`RESQ-XXXX`) to track live dispatch status, assigned rescue team name, and estimated arrival time (ETA).
+* **Public Hazard & Safety Bulletin:** Real-time river height levels, city roadway status (safe vs. blocked roads), and walk-in public shelters with bed vacancy counts and food rations.
 
 ---
 
-## 🚀 Quickstart & Setup Instructions
+## 📦 Core Modules & Feature Matrix
+
+| Module | Backend Endpoint(s) | Frontend Component | Architectural Guarantee |
+| :--- | :--- | :--- | :--- |
+| **Command Center & Situational Analytics** | `GET /api/incidents/`<br>`GET /api/simulation/status`<br>`GET /api/sensors/` | [`AnalyticsView.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/views/AnalyticsView.tsx)<br>[`Dashboard.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/pages/Dashboard.tsx) | Live situational KPI cards (Active, Critical, Ready Units, Resolution Rate), Hydrology gauge, and Decision Audit Trail feed. Zero hardcoded mock numbers. |
+| **AI Damage Scanner & CV Analysis** | `POST /api/ai-assistant/analyze-damage` | [`AIDamageAssessmentModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/AIDamageAssessmentModal.tsx) | Analyzes aerial drone imagery presets or uploaded captures. Produces structural integrity %, compound hazards, confidence score, and 1-click incident pre-fill. |
+| **Time-Bound Rescue Deadlines** | `POST /api/incidents/{id}/mark-arrival`<br>`POST /api/incidents/{id}/resolve`<br>`POST /api/incidents/{id}/adjust-deadline` | [`DeadlineCountdown.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/DeadlineCountdown.tsx)<br>[`DeadlineAdjustModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/DeadlineAdjustModal.tsx) | Deadlines: Critical=25-45m, High=60-90m, Medium=120m + transit buffer. Separate arrival vs. resolution events. Changes logged to immutable audit trail. |
+| **5-Star Team Rating & Hazard Shield** | `GET /api/teams/{id}/ratings`<br>`POST /api/teams/ratings/{id}/dispute`<br>`POST /api/teams/ratings/{id}/review` | [`TeamsView.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/views/TeamsView.tsx) | Multi-factor rating (punctuality, mission success, victim safety). Automatically waives delay penalties if route or weather hazard is verified. |
+| **Delay Review & Accountability** | `POST /api/incidents/{id}/explain-delay`<br>`POST /api/incidents/{id}/review-delay`<br>`POST /api/teams/{id}/restriction` | [`DelayReviewModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/DelayReviewModal.tsx) | Structured responder explanations and supervisor rulings (*Justified Exception*, *Formal Warning*, *Training*, *Temporary Assignment Restriction*). |
+| **Tactical Backup & Mission Handover** | `POST /api/backup-requests/`<br>`POST /api/backup-requests/{id}/assign`<br>`POST /api/backup-requests/{id}/status` | [`BackupRequestModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/BackupRequestModal.tsx)<br>[`BackupRequestsView.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/views/BackupRequestsView.tsx) | Dispatches helicopters, boats, ambulances, comms, or personnel. Supports Partial Assistance and Complete Handover modes. |
+| **Bilingual Voice SOS Assistant** | `POST /api/ai-assistant/chat`<br>`POST /api/ai-assistant/submit-voice-report`<br>`GET /api/ai-assistant/status/{ref}` | [`AIAssistantModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/AIAssistantModal.tsx) | Web Speech API speech-to-text in English and Hindi. NLP entity extraction, missing information prompts, life-saving advice, and live status lookup by code. |
+| **Grounded Inventory Dispatch** | `GET /api/incidents/{id}/recommendations` | [`ResourceRecommendationModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/ResourceRecommendationModal.tsx) | Verifies real available stock from the database before recommending or allocating equipment. |
+| **Unified Notification Drawer** | `GET /api/notifications/`<br>`POST /api/notifications/{id}/read` | [`NotificationDrawer.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/NotificationDrawer.tsx) | Central real-time alert feed for critical incidents, approaching deadlines, backup requests, and operational status changes. |
+
+---
+
+## 🚀 Quickstart & Startup Instructions
 
 ### Prerequisites
-* **Python 3.9+** (Virtual environment included at `.venv`)
+* **Python 3.9+** (Virtual environment configured at `.venv`)
 * **Node.js 18+** & **npm**
 
-### Step 1: Start the Backend Server
+### Step 1: Start the Backend Server (Port 8000)
 ```bash
-# 1. Open terminal and navigate to project root
+# Navigate to the project root
 cd /Users/vanshkumar/Downloads/H2
 
-# 2. Activate virtual environment
+# Activate virtual environment
 source .venv/bin/activate
 
-# 3. (Optional) Re-seed fresh demo data
+# (Optional) Seed clean database records
 PYTHONPATH=. python backend/seed.py
 
-# 4. Start the FastAPI backend server with WebSockets (port 8000)
+# Start Uvicorn ASGI server with hot-reload
 PYTHONPATH=. uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-* **Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)  
-* **Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
+* **Interactive API Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Backend Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
 
-### Step 2: Start the Frontend Application
+### Step 2: Start the Frontend Application (Port 5173 / 5174)
 ```bash
-# In a new terminal window:
+# In a separate terminal window:
 cd /Users/vanshkumar/Downloads/H2/frontend
 
-# Start the Vite development server (port 5173)
+# Launch Vite development server
 npm run dev
 ```
-* **Application URL:** [http://localhost:5173](http://localhost:5173)
+* **Landing Page:** [http://localhost:5173/](http://localhost:5173/)
+* **Operations Command Dashboard:** [http://localhost:5173/dashboard](http://localhost:5173/dashboard)
 
 ---
 
 ## 🧪 Automated Test Suite
 
-The test suite validates every module with **33 automated tests**:
-* `backend/tests/test_adracs_features.py` (10 tests):
-  - Dynamic deadline calculation (Critical severity vs transit distance).
-  - Arrival tracking (`/mark-arrival`) and resolution (`/resolve`) separation.
-  - 5-star performance rating calculation and disaster hazard exceptions.
-  - Delay notification, team explanation, and supervisor corrective actions.
-  - Backup request creation, multi-resource selection, and coordinator assignment.
-  - Grounded resource recommendations checking live inventory stock.
-  - AI Assistant bilingual NLP entity extraction (Hindi & English).
-  - Web Speech voice report direct submission and status retrieval.
-  - Team assignment prevention for restricted teams.
-  - Deadline adjustment with mandatory justification audit log.
-* `backend/tests/test_api_integration.py` (7 tests): REST & WebSocket endpoints.
-* `backend/tests/test_scenarios_a_to_g.py` (7 tests): Complex multi-step field scenarios.
-* `backend/tests/test_domain_services.py` (4 tests): Core scoring and triage logic.
-* `backend/tests/test_routing_and_replanning.py` (3 tests): Road-closure avoidance and OSRM rerouting.
-* `backend/tests/test_simulator.py` (1 test): Flood simulation lifecycle.
-* `backend/tests/test_db_and_models.py` (1 test): Database model integrity.
+ResQGrid maintains a rigorous test suite of **34 automated integration tests** covering all domain services, REST routes, WebSocket broadcasts, deadline algorithms, rating protections, and AI damage assessment:
 
-### Running the Test Suite
 ```bash
 cd /Users/vanshkumar/Downloads/H2
 source .venv/bin/activate
 PYTHONPATH=. pytest backend/tests -v
 ```
-*Expected Result:* **33 passed (100%)**
+
+### Test Suite Summary:
+* `backend/tests/test_adracs_features.py` (11 tests):
+  - Dynamic deadline calculation (Critical severity vs. transit buffer).
+  - Arrival tracking (`/mark-arrival`) and resolution (`/resolve`) independence.
+  - 5-star performance rating calculation and hazard exception shield.
+  - Delay notification, responder explanation, and supervisor corrective actions.
+  - Backup request creation, multi-resource selection, and coordinator dispatch.
+  - Grounded resource recommendations checking live inventory stock.
+  - AI Voice Assistant bilingual NLP entity extraction (Hindi & English).
+  - Web Speech voice report direct submission and status retrieval.
+  - Team assignment prevention for restricted units.
+  - Deadline adjustment with mandatory justification audit log.
+  - **AI Damage Assessment Scanner** (confidence score, structural integrity %, and detected hazards).
+* `backend/tests/test_api_integration.py` (7 tests): REST & WebSocket endpoints.
+* `backend/tests/test_scenarios_a_to_g.py` (7 tests): Complex multi-step field emergency scenarios.
+* `backend/tests/test_domain_services.py` (4 tests): Core scoring and triage logic.
+* `backend/tests/test_routing_and_replanning.py` (3 tests): Road-closure avoidance and OSRM rerouting.
+* `backend/tests/test_simulator.py` (1 test): Flood simulation lifecycle.
+* `backend/tests/test_db_and_models.py` (1 test): Database model integrity.
+
+**Result: 34 passed (100% passing)**
 
 ---
 
-## 🎓 Teacher & Demonstration Guide
+## ⚙️ Environment Variables & Configuration
 
-Follow this guide to demonstrate all features to your teacher:
+The application is engineered to work out-of-the-box with sensible defaults, while allowing external services to be integrated when credentials are provided:
 
-### Step 1: Demonstrate the Demo Role Switcher
-* Look at the top navigation bar. Notice the **Demo Role** toggle:
-  - **Admin / Control Room:** Full supervisory authority to adjust deadlines, review delays, and assign backups.
-  - **Rescue Team Responder:** Field perspective showing assigned incidents, "Request Backup", and arrival reporting.
-  - **Public Citizen:** Highlights the **AI Voice Assistant** with a prominent citizen emergency banner.
-
-### Step 2: Demonstrate the AI Emergency Assistant with Voice Reporting
-* Click the glowing **"Voice SOS"** or **"AI Voice Assistant"** button.
-* Select language (**English** or **हिंदी**).
-* Click the microphone button and speak (or click one of the pre-loaded **Voice Demo** quick-speech buttons, e.g. Hindi: *"Main flood mein phansa hua hoon. Mere paas teen log hain. Humein medical help chahiye..."*).
-* Observe the AI extract:
-  - **Emergency Type:** Flood / Inundation
-  - **Location:** Pune Riverbank / Low-lying area
-  - **People Affected:** 3
-  - **Required Resources:** Rescue boat, Medical team
-* Click **"Submit Emergency Report to Dispatch"**.
-* The system assigns a real incident reference code (e.g., `ADR-2026-XXXX`).
-* Switch to the **"Check Incident Status"** tab in the modal and paste the reference code to see live triage status.
-
-### Step 3: Demonstrate Emergency Rescue Deadlines & Live Countdown
-* Switch the view to the **Operations Map**.
-* In the right-hand **Incident Priority Queue**, inspect the active incident cards:
-  - Each card displays a live ticking **DeadlineCountdown**:
-    - Normal (Cyan/Green): e.g., `42m 15s remaining`.
-    - Warning (Amber): `< 15m remaining`.
-    - Delayed (Red flashing): `OVERDUE by 08m 20s`.
-  - Notice the separate tracking buttons:
-    - **Mark Team Arrived:** Records actual arrival timestamp and checks whether the team arrived on time or late.
-    - **Resolve Rescue:** Records rescue completion, victim safety status, and calculates the team's 5-star score.
-  - Click **"Adjust Deadline"**: Enter a new time and a mandatory reason (e.g., *"Flash flood washed out river access road"*). Show the audit confirmation.
-
-### Step 4: Demonstrate Delay Consequences & Fair Accountability
-* On a delayed incident, click **"Report/Review Delay"**:
-  - As a **Responder**, select delay category (e.g., *Road Blocked*, *Severe Weather*, *Equipment Failure*) and submit an operational explanation.
-  - Switch role to **Admin**: Review the explanation and select a corrective action (e.g., *Justified Hazard Exception*, *Formal Warning*, *Additional Training*, or *Temporary Assignment Restriction*).
-  - Emphasize to the teacher: **Genuine disaster hazards are marked as approved exceptions and do not penalize responders unfairly.**
-
-### Step 5: Demonstrate Rescue Team Performance Ratings
-* Click the **"Rescue Teams & Ratings"** tab in the left sidebar.
-* View the performance cards for each team:
-  - **Average Rating (out of 5.0 ★)**
-  - **Completed Rescues**
-  - **On-Time Response Rate %**
-  - **Delayed Rescues Count**
-* Click **"View Rating Breakdown & History"** to show individual past mission ratings.
-* Show the **"Dispute Rating"** feature where teams can request supervisory review if an unfair penalty was applied due to disaster conditions.
-
-### Step 6: Demonstrate Emergency Backup & Handover
-* On the Teams view or on an assigned incident card, click **"Request Backup"**.
-* The modal allows selecting required resources:
-  - Helicopter
-  - Rescue Boat
-  - Ambulance
-  - Medical Team
-  - Fire Brigade
-  - Additional Personnel
-* Select **Urgency Level** (Critical / High) and choose **Handover Mode** (*Partial Assistance* vs *Complete Mission Handover*).
-* Submit the request.
-* Switch to the **"Backup & Handover"** tab in the sidebar:
-  - View the incoming request in the control room dashboard.
-  - Select an available team from the verified list, enter estimated transit time, and click **"Dispatch Backup Team"**.
-  - Notice the status update and the requesting team's notification!
-
-### Step 7: Demonstrate Grounded Resource Recommendations
-* On any active incident in the priority queue, click the **"Resource Advice"** sparkle icon.
-* The modal analyzes the incident (e.g., Flood + Casualties) and recommends appropriate resources (e.g., Rescue Boats, Trauma Packs, Ambulances).
-* Point out the **"Stock Confirmed"** check: it directly checks live inventory in the database, ensuring control rooms never dispatch non-existent equipment.
-
-### Step 8: Demonstrate Real-Time Notifications
-* Click the **Bell Icon** in the top navigation.
-* The slide-out notification drawer displays categorized alerts:
-  - Critical Incidents
-  - Upcoming & Missed Deadlines
-  - Backup Dispatches
-  - Team Status Updates
-* Click **"Mark All Read"** or dismiss individual alerts.
+| Variable | Default Value | Description |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `sqlite:///./disaster_coord.db` | Database connection string. Automatically defaults to local SQLite with schema auto-migration. |
+| `PORT` | `8000` | Port for the FastAPI backend server. |
+| `VITE_API_URL` | `http://localhost:8000` | Frontend backend API URL. |
+| `GROQ_API_KEY` | *(Optional)* | Optional LLM API key for extended multi-agent reasoning. Falls back automatically to rule-based NDMA intelligence when absent. |
+| `GEMINI_API_KEY` | *(Optional)* | Optional Google Gemini key for multimodal image analysis. Falls back to local damage assessment engine when absent. |
 
 ---
 
-## 🔒 Security, Safety Guarantees & Constraints
+## 🔒 Security & Data Integrity Guarantees
 
-1. **Simulated Data Integrity:** All mock data is clearly badged with a glowing `"SIMULATED DATA"` indicator in the header.
-2. **Immutable Audit Trail:** All administrative decisions (deadline extensions, delay reviews, backup assignments) are permanently logged in the `PlanAuditLog` table.
-3. **Restricted Team Protection:** Teams placed under temporary restriction cannot be auto-assigned to new incidents until cleared by a supervisor.
-4. **Speech Privacy:** Raw audio is processed locally via browser Web Speech API; only finalized text transcripts are transmitted to the backend.
-5. **No Hardcoded Secrets:** All configurations use environment variables with fallback defaults.
+1. **Clear Simulation Labeling:** All simulated telemetry and scenario metrics are explicitly labeled with `SIMULATED DATA` badges.
+2. **Immutable Audit Logging:** Every supervisory action (deadline extension, delay review ruling, backup dispatch) is committed to `PlanAuditLog`.
+3. **Restricted Unit Isolation:** Responders with temporary assignment restrictions cannot be assigned to new emergencies.
+4. **Speech Data Privacy:** Raw voice audio is processed client-side via the browser Web Speech API; only the extracted textual transcript is transmitted to the server.
+5. **Zero Secret Leaks:** No private keys or secrets are committed or exposed in frontend bundles.
 
 ---
 
-## 👥 Contributors & Academic Context
+## 🛡️ License & Academic Context
 
-* **Project:** Autonomous Disaster Response and Coordination System (ADRACS)
-* **Stack:** Python 3.9+, FastAPI, SQLAlchemy 2.0, SQLite, Socket.IO, React 19, Vite, Tailwind CSS, MapLibre GL.
+* **Product:** ResQGrid — AI-Powered Disaster Intelligence & Response Platform
+* **Tagline:** “Predict Early. Respond Faster. Save Lives.”
+* **Stack:** Python 3.9+, FastAPI, SQLAlchemy 2.0, SQLite, Socket.IO, React 19, TypeScript, Vite, Tailwind CSS v4, MapLibre GL.

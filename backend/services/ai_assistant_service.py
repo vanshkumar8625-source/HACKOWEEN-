@@ -163,9 +163,9 @@ def handle_assistant_interaction(
     clean_msg = message.strip()
     clean_lower = clean_msg.lower()
 
-    # Case A: Status Inquiry for an Incident (e.g. "Status of incident #2", "Check INC-2", "kahan pahuncha")
-    id_match = re.search(r'(?:incident|case|ticket|report|#)?\s*#?(\d+)', clean_lower)
-    if any(q in clean_lower for q in ["status", "kahan", "track", "check", "update", "kab aayega", "eta"]) and id_match:
+    # Case A: Status Inquiry for an Incident (e.g. "Status of incident #2", "Check RESQ-0002", "Check INC-2", "kahan pahuncha")
+    id_match = re.search(r'(?:incident|case|ticket|report|resq|inc|#)?\s*[-#]?\s*(\d+)', clean_lower)
+    if any(q in clean_lower for q in ["status", "kahan", "track", "check", "update", "kab aayega", "eta", "resq", "ticket"]) and id_match:
         inc_id = int(id_match.group(1))
         inc = db.query(Incident).filter(Incident.id == inc_id).first()
         if inc:
@@ -191,7 +191,7 @@ def handle_assistant_interaction(
                 "can_submit": False,
                 "safety_tips": get_safety_advice(inc.disaster_type, inc.casualties_count > 0),
                 "created_incident_id": inc.id,
-                "incident_reference": f"INC-{inc.id:04d}"
+                "incident_reference": f"RESQ-{inc.id:04d}"
             }
         else:
             return {
