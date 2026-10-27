@@ -14,6 +14,9 @@ class IncidentCreate(BaseModel):
     reported_by: Optional[str] = "Citizen"
     required_skill: Optional[str] = "General Rescue"
     required_supplies: Optional[Dict[str, int]] = Field(default_factory=dict)
+    casualties_count: Optional[int] = 0
+    people_affected: Optional[int] = 1
+    voice_transcript: Optional[str] = None
 
 class IncidentUpdate(BaseModel):
     title: Optional[str] = None
@@ -22,6 +25,35 @@ class IncidentUpdate(BaseModel):
     description: Optional[str] = None
     assigned_team_id: Optional[int] = None
     assigned_shelter_id: Optional[int] = None
+    backup_team_id: Optional[int] = None
+    deadline_status: Optional[str] = None
+
+class IncidentDeadlineAdjustRequest(BaseModel):
+    new_deadline: datetime
+    reason: str = Field(..., min_length=5, description="Administrative justification for deadline extension")
+    adjusted_by: Optional[str] = "Administrator"
+
+class IncidentArrivalRequest(BaseModel):
+    actual_arrival_at: Optional[datetime] = None
+    notes: Optional[str] = "Team arrived on scene"
+
+class IncidentResolveRequest(BaseModel):
+    resolved_at: Optional[datetime] = None
+    outcome_notes: Optional[str] = "Rescue operation successfully completed"
+    casualties_saved: Optional[int] = None
+    rating: Optional[float] = 5.0
+    feedback: Optional[str] = "Mission completed successfully"
+    is_disaster_exception: Optional[bool] = False
+
+class DelayExplanationRequest(BaseModel):
+    reason_category: str = Field(..., description="Road Blocked, Severe Weather, Equipment Failure, Responder Safety, Access/Traffic, Other")
+    explanation: str = Field(..., min_length=10)
+    team_id: Optional[int] = None
+
+class DelayReviewDecisionRequest(BaseModel):
+    admin_decision: str = Field(..., description="Justified - No Action, Warning, Mandatory Review, Additional Training, Temporary Restriction")
+    admin_notes: Optional[str] = None
+    reviewed_by: Optional[str] = "Admin Commander"
 
 class IncidentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -40,10 +72,81 @@ class IncidentResponse(BaseModel):
     reported_by: str
     required_skill: str
     required_supplies_json: Optional[str] = None
+    casualties_count: int = 0
+    people_affected: int = 1
+    voice_transcript: Optional[str] = None
     assigned_team_id: Optional[int] = None
+    backup_team_id: Optional[int] = None
     assigned_shelter_id: Optional[int] = None
+    
+    # Deadlines & Timelines
+    deadline_at: Optional[datetime] = None
+    estimated_arrival_at: Optional[datetime] = None
+    actual_arrival_at: Optional[datetime] = None
+    resolved_at: Optional[datetime] = None
+    deadline_status: str = "Pending"
+    deadline_extended_reason: Optional[str] = None
+    backup_requested: bool = False
+    delay_reason: Optional[str] = None
+    delay_category: Optional[str] = None
+    delay_reviewed: bool = False
+    
     created_at: datetime
     updated_at: datetime
+
+# --- Delay Review ---
+class DelayReviewResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    incident_id: int
+    team_id: int
+    delay_minutes: float
+    reason_category: str
+    explanation: str
+    admin_decision: str
+    admin_notes: Optional[str] = None
+    reviewed_by: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+# --- Team Ratings ---
+class TeamRatingCreate(BaseModel):
+    team_id: int
+    incident_id: int
+    rating: float = Field(..., ge=1.0, le=5.0)
+    arrived_on_time: bool = True
+    rescue_successful: bool = True
+    outcome_notes: Optional[str] = None
+    resource_efficiency_score: Optional[float] = 5.0
+    is_disaster_exception: Optional[bool] = False
+    rated_by: Optional[str] = "Supervisor"
+
+class RatingDisputeRequest(BaseModel):
+    dispute_reason: str = Field(..., min_length=10)
+
+class RatingReviewRequest(BaseModel):
+    dispute_status: str = Field(..., description="Reviewed, Upheld, Dismissed")
+    supervisor_notes: str = Field(..., min_length=5)
+    adjusted_rating: Optional[float] = Field(None, ge=1.0, le=5.0)
+
+class TeamRatingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    team_id: int
+    incident_id: int
+    rating: float
+    arrived_on_time: bool
+    rescue_successful: bool
+    outcome_notes: Optional[str] = None
+    resource_efficiency_score: Optional[float] = 5.0
+    is_disaster_exception: bool = False
+    dispute_status: str = "None"
+    dispute_reason: Optional[str] = None
+    supervisor_notes: Optional[str] = None
+    rated_by: str = "Supervisor"
+    created_at: datetime
 
 # --- Resources ---
 class ResourceCreate(BaseModel):
@@ -90,6 +193,10 @@ class TeamAssignmentRequest(BaseModel):
     incident_id: int
     reason: Optional[str] = "Manual commander dispatch"
 
+class TeamRestrictionUpdateRequest(BaseModel):
+    is_restricted: bool
+    restriction_reason: Optional[str] = None
+
 class RescueTeamResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -101,6 +208,76 @@ class RescueTeamResponse(BaseModel):
     latitude: float
     longitude: float
     contact_number: str
+    average_rating: float = 5.0
+    total_ratings: int = 0
+    completed_rescues: int = 0
+    on_time_rescues: int = 0
+    delayed_rescues: int = 0
+    on_time_percentage: float = 100.0
+    is_restricted: bool = False
+    restriction_reason: Optional[str] = None
+
+# --- Backup Requests ---
+class BackupRequestCreate(BaseModel):
+    incident_id: int
+    requesting_team_id: int
+    location_name: str
+    latitude: float
+    longitude: float
+    reason: str = Field(..., min_length=5)
+    assistance_type: str = Field(..., description="Specialized Extraction, Medical Evacuation, Perimeter Containment, Full Handover, Supply Drop")
+    required_resources: List[str] = Field(default_factory=list)
+    personnel_needed: int = Field(default=2, ge=1)
+    urgency: str = Field(default="High", description="Low, Medium, High, Critical")
+    notes: Optional[str] = None
+    photo_url: Optional[str] = None
+    handover_type: Optional[str] = "Partial"
+
+class BackupRequestAssign(BaseModel):
+    assigned_backup_team_id: Optional[int] = None
+    handover_type: Optional[str] = "Partial"
+    eta_minutes: Optional[float] = 15.0
+    allocated_resources: Optional[List[Dict[str, Any]]] = None
+
+class BackupRequestStatusUpdate(BaseModel):
+    status: str = Field(..., description="Assigned, En Route, On Scene, Completed, Cancelled")
+
+class BackupRequestResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    incident_id: int
+    requesting_team_id: int
+    assigned_backup_team_id: Optional[int] = None
+    location_name: str
+    latitude: float
+    longitude: float
+    reason: str
+    assistance_type: str
+    required_resources_json: str
+    personnel_needed: int
+    urgency: str
+    notes: Optional[str] = None
+    photo_url: Optional[str] = None
+    status: str
+    handover_type: str
+    eta_minutes: Optional[float] = None
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
+
+# --- Notifications ---
+class NotificationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    message: str
+    category: str
+    severity: str
+    incident_id: Optional[int] = None
+    team_id: Optional[int] = None
+    is_read: bool
+    created_at: datetime
 
 # --- Shelters ---
 class ShelterCreate(BaseModel):
@@ -219,6 +396,39 @@ class PlanAuditLogResponse(BaseModel):
     details_json: Optional[str] = None
     triggered_by: str
 
+# --- AI Emergency Assistant ---
+class AIAssistantChatRequest(BaseModel):
+    message: str
+    language: Optional[str] = "en"  # "en" or "hi"
+    audio_transcript: Optional[str] = None
+    is_voice: Optional[bool] = False
+    context_incident_id: Optional[int] = None
+
+class AIAssistantChatResponse(BaseModel):
+    reply: str
+    reply_hi: Optional[str] = None
+    extracted_data: Optional[Dict[str, Any]] = None
+    missing_fields: List[str] = Field(default_factory=list)
+    can_submit: bool = False
+    safety_tips: List[str] = Field(default_factory=list)
+    created_incident_id: Optional[int] = None
+    incident_reference: Optional[str] = None
+
+# --- Resource Recommendations ---
+class ResourceRecommendationItem(BaseModel):
+    resource_type: str
+    name: str
+    recommended_qty: int
+    available_qty: int
+    unit: str
+    is_available: bool
+    rationale: str
+
+class ResourceRecommendationResponse(BaseModel):
+    incident_id: int
+    severity: str
+    recommendations: List[ResourceRecommendationItem]
+
 # --- Simulator & Coordination ---
 class SimulationControlRequest(BaseModel):
     action: str = Field(..., description="start, pause, step, reset")
@@ -233,3 +443,4 @@ class SimulationStatusResponse(BaseModel):
     blocked_routes_count: int
     shelter_occupancy_total: int
     audit_events_count: int
+

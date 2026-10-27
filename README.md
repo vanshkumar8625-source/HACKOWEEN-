@@ -1,25 +1,22 @@
-# 🚨 Dynamic Emergency Resource Coordination Command Center
+# 🚨 Dynamic Emergency Resource Coordination Command Center (ADRACS)
 
-> **An Autonomous Disaster Response, Dynamic Simulation, and Resource Coordination Platform**  
-> Built for the Student Hackathon: *Dynamic Emergency Resource Coordination*  
-> Merged & Engineered from **ADRACS** and **ResQNet** with zero modification to upstream source repositories.
+> **Autonomous Disaster Response and Coordination System (ADRACS)**  
+> An upgraded, full-stack disaster-response coordination platform featuring **time-bound rescue deadlines**, **fair team performance evaluation**, **emergency backup & handover**, and **AI voice-driven incident intake**.
 
 ---
 
-## 🌟 Executive Summary
+## 🌟 Executive Summary & Key Upgrades
 
-During critical disasters such as floods, conditions on the ground degrade continuously:
-* Incoming citizen SOS and sensor telemetry spike simultaneously.
-* River levels rise and submerge bridges, severing key evacuation corridors.
-* Emergency relief shelters approach maximum capacity and run low on rations.
-* Field rescue teams and physical supplies (boats, food, trauma kits) are limited and must be allocated to competing needs.
-
-This platform provides a **unified, resilient command center** powered by:
-1. **Deterministic Safety Validation:** Hard mathematical constraints on shelter capacity, inventory allocation, and skill matching that cannot be bypassed.
-2. **Explainable Priority Scoring:** Transparent multi-factor triage calculating dynamic priority scores ($0.0 - 100.0$) with exact factor breakdowns.
-3. **Road-Closure-Aware Routing & Event Replanning:** Invalidation of flooded transit routes and automatic detour calculation via OSRM.
-4. **Repeatable Disaster Simulator:** Complete scenario control with `start`, `pause`, `step`, and `reset` to baseline.
-5. **NASA-Grade Interactive Command Center:** React 19, MapLibre GL vector maps, live WebSockets, and clear simulated data labeling.
+During critical emergencies such as flash floods and structural collapses, rescue operations require strict coordination, fair team accountability, and rapid citizen access:
+* **Time-Bound Rescue Deadlines:** Dynamic response deadlines computed automatically from incident severity and transit distance.
+* **Separation of Arrival vs. Resolution:** Estimated arrival time (ETA) is never treated as proof of victim rescue; arrival and resolution are tracked independently.
+* **Fair 5-Star Team Performance Rating:** Objective rating based on on-time arrival %, mission success, and victim safety, with **mandatory protections** against penalties when disasters render roads impassable.
+* **Delay Consequences & Supervisor Review:** Automated delay detection, responder explanation logging, and administrative accountability (Warning, Training, Temporary Assignment Restriction).
+* **Emergency Backup & Handover:** Field teams can request tactical backup (Helicopter, Rescue Boat, Ambulance, Fire Brigade, Comms, Personnel) with central coordinator dispatch and partial/complete handover modes.
+* **AI Emergency Assistant with Voice Reporting (Meesho-Style):** Bilingual (English & Hindi) voice and text conversational intake powered by Web Speech API with NLP entity extraction, missing information prompts, life-saving safety guidance, and status tracking by reference ID.
+* **Grounded Resource Recommendations:** Automatic equipment recommendations verified against live database inventory before dispatch.
+* **Unified Notification Center:** Real-time alert notifications for critical incidents, approaching/missed deadlines, backup requests, and status changes.
+* **Demo Role Switcher:** Instant perspective switching between **Administrator / Control Room**, **Field Responder Team**, and **Citizen / Public** for seamless classroom presentation to instructors.
 
 ---
 
@@ -27,152 +24,223 @@ This platform provides a **unified, resilient command center** powered by:
 
 ```mermaid
 flowchart TB
-    subgraph UI["Frontend Command Center (React 19 + MapLibre GL)"]
-        Nav["Simulation Ticker & Controls (Start / Pause / Step / Reset)"]
+    subgraph UI["Frontend Command Center (React 19 + MapLibre GL + Tailwind)"]
+        Nav["Simulation Header & Demo Role Switcher (Admin / Responder / Citizen)"]
         Map["MapLibre GL Live Operations Map"]
-        Queue["Explainable Priority Action Queue"]
-        Views["Teams / Shelters / Supplies / Audit Views"]
+        Queue["Priority Queue with Live Deadline Countdown"]
+        AIAssistant["AI Voice Assistant Modal (Hindi / English Speech Intake)"]
+        BackupView["Backup Requests & Handover Dispatch"]
+        TeamsView["Rescue Teams with 5-Star Ratings & Disputes"]
+        NotifDrawer["Unified Notification Alert Drawer"]
     end
 
-    subgraph API["Backend API (FastAPI + Asynchronous Engine)"]
-        Router["FastAPI REST & WebSocket Endpoints"]
-        Sim["Repeatable Disaster Simulator Engine"]
-        Triage["Deterministic Priority Scoring Service"]
-        RouterService["Road-Closure-Aware Routing (OSRM + Fallback)"]
-        ReplanService["Event-Triggered Replanning Service"]
-        AllocService["Inventory Allocation & Shelter Capacity Validator"]
-        AuditService["Immutable Plan Audit Logger"]
+    subgraph API["Backend API (FastAPI + Asynchronous Engine + WebSockets)"]
+        Deadlines["Deadline & ETA Service (Haversine + Severity)"]
+        Ratings["Fair Team Rating Engine (Disaster Protection)"]
+        AIService["AI Voice & NLP Extractor (Bilingual NER)"]
+        BackupRouter["Backup Request & Handover Coordinator"]
+        RecomService["Grounded Resource Inventory Checker"]
+        NotifService["Real-Time Notification Dispatcher"]
+        SimEngine["Repeatable Disaster Simulator Engine"]
+        RouterService["Road-Closure-Aware Routing (OSRM)"]
     end
 
-    subgraph Storage["Unified Relational Data Model (SQLAlchemy 2.0)"]
-        DB[(SQLite / PostgreSQL Auto-Detect)]
-        IncidentsTable["Incidents (Priority, Status, Assignments)"]
-        TeamsTable["Rescue Teams (GPS, Skills, Availability)"]
-        SheltersTable["Shelters (Capacity, Occupancy, Rations)"]
-        RoutesTable["Evacuation Routes (Safe / Blocked Geometry)"]
-        ResourcesTable["Supplies (Total, Allocated, Reserved)"]
-        SensorsTable["IoT Telemetry (Water Level, Rain)"]
-        AuditTable["PlanAuditLogs (Reasons & State Diff)"]
+    subgraph Storage["Unified Relational Data Model (SQLite Auto-Migrated)"]
+        Incidents["Incidents (Deadlines, ETAs, Actual Arrival, Voice Transcripts)"]
+        Teams["Rescue Teams (Ratings, On-Time %, Restrictions)"]
+        TeamRatings["TeamRatings (Audit Scores, Dispute Flags, Reviews)"]
+        DelayReviews["DelayReviews (Categories, Reasons, Admin Actions)"]
+        BackupRequests["BackupRequests (Requested Resources, Handover Type, ETA)"]
+        Notifications["Notifications (Alerts, Severities, Read Status)"]
+        Resources["Resources (Verified Stock, Available Qty)"]
+        Shelters["Shelters (Capacity, Occupancy, Rations)"]
+        AuditLogs["PlanAuditLogs (Immutable Decision History)"]
     end
 
     UI <-->|REST API + Socket.IO WSS| API
     API <--> Storage
-    Sim -->|Ticks & Flooding Events| RouterService
-    RouterService -->|Auto-Reroute| ReplanService
-    ReplanService -->|Broadcasts State Changes| UI
+    SimEngine -->|Surge Events| Deadlines
+    Deadlines -->|Delay Detection| NotifService
+    NotifService -->|Broadcasts Alerts| UI
 ```
 
 ---
 
-## 📦 Required Modules & Implementation Map
+## 📦 Upgraded Features & Implementation Map
 
-Every module mandated by the project requirements is implemented with exact file references:
-
-| Required Module | Implementation File(s) | Description & Safety Guarantee |
-| :--- | :--- | :--- |
-| **1. Incident Intake & Validation** | [`backend/api/incidents.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/incidents.py)<br>[`backend/schemas.py`](file:///Users/vanshkumar/Downloads/H2/backend/schemas.py) | Strict Pydantic v2 schemas validating coordinates, severity, required skills, and supply needs. |
-| **2. Explainable Incident Priority Scoring** | [`backend/services/priority_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/priority_service.py) | Transparent scoring: Severity (max 40) + Hazard (max 25) + Environment (max 15) + Vulnerability (max 10) + Wait Time (max 10). Emits full JSON explanation. |
-| **3. Shared Resource Inventory & Reservation** | [`backend/services/resource_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/resource_service.py)<br>[`backend/api/resources.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/resources.py) | Deterministic stock validation: rejects requests exceeding available stock (`qty <= available_qty`). Supports two-phase reservation & release. |
-| **4. Team Assignment with Skill & Proximity** | [`backend/services/team_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/team_service.py)<br>[`backend/api/teams.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/teams.py) | Enforces team availability (`Available`/`Returning`), skill compatibility (`Flood Rescue`, `Medical`, `Hazmat`), and Haversine proximity. |
-| **5. Shelter Capacity & Accessibility Checks** | [`backend/services/shelter_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/shelter_service.py)<br>[`backend/api/shelters.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/shelters.py) | Hard capacity check (`occupancy + evacuees <= capacity`) and road accessibility verification. Rejects overcapacity with clear error audit. |
-| **6. Road-Closure-Aware Route Planning** | [`backend/services/routing_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/routing_service.py)<br>[`backend/api/routes_evac.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/routes_evac.py) | Checks database for blocked corridors. Computes safe routes via OSRM or perimeter waypoint detours. Returns GeoJSON coordinates. |
-| **7. Event-Triggered Replanning** | [`backend/services/replanning_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/replanning_service.py) | Triggered when roads flood or shelters saturate: automatically recalculates detour paths and diverts evacuees to alternative shelters. |
-| **8. Repeatable Flood/Disaster Simulator** | [`backend/services/simulation_engine.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/simulation_engine.py)<br>[`backend/api/simulation.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/simulation.py) | Complete state machine with `start`, `pause`, `step`, and `reset` controls. Deterministically steps rainfall, river levels, and shelter drain. |
-| **9. Audit / Event History** | [`backend/services/audit_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/audit_service.py)<br>[`backend/api/audit_logs.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/audit_logs.py) | Immutable `PlanAuditLog` table recording timestamps, entity IDs, actions, and exact reasons explaining why decisions or reroutes occurred. |
-| **10. Clear Hackathon UI** | [`frontend/src/pages/Dashboard.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/pages/Dashboard.tsx)<br>[`frontend/src/components/`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/) | Dark-mode command center displaying simulated telemetry clearly labeled. Interactive map, live priority queue, and dedicated views for all entities. |
+| Feature Module | Backend Service & Endpoints | Frontend Component(s) | Key Guarantee & Logic |
+| :--- | :--- | :--- | :--- |
+| **1. Emergency Rescue Deadline & Tracking** | [`backend/services/deadline_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/deadline_service.py)<br>`POST /api/incidents/{id}/mark-arrival`<br>`POST /api/incidents/{id}/resolve`<br>`POST /api/incidents/{id}/adjust-deadline` | [`frontend/src/components/DeadlineCountdown.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/DeadlineCountdown.tsx)<br>[`frontend/src/components/DeadlineAdjustModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/DeadlineAdjustModal.tsx) | Deadlines: Critical=25-45m, High=60-90m, Medium=120m, Low=240m + transit time. Live ticking countdown with amber/red alerts. Separate arrival and resolution tracking. Admin adjustments log mandatory reasons. |
+| **2. Rescue Team Performance Rating** | [`backend/services/rating_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/rating_service.py)<br>`GET /api/teams/{id}/ratings`<br>`POST /api/teams/ratings/{id}/dispute`<br>`POST /api/teams/ratings/{id}/review` | [`frontend/src/components/views/TeamsView.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/views/TeamsView.tsx) | 5-star scoring formula. Teams cannot self-edit. Approved disaster exceptions (flooded bridges, roadblocks) are completely shielded from delay penalties. Supervisors can adjust disputed ratings. |
+| **3. Delay Consequences & Accountability** | [`backend/api/incidents.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/incidents.py)<br>`POST /api/incidents/{id}/explain-delay`<br>`POST /api/incidents/{id}/review-delay`<br>`POST /api/teams/{id}/restriction` | [`frontend/src/components/DelayReviewModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/DelayReviewModal.tsx) | Missed deadlines automatically notify admin. Team provides operational explanation (Road Blocked, Severe Weather, etc.). Admin reviews and issues corrective actions: Warning, Review, Training, or Temporary Assignment Restriction. |
+| **4. Emergency Assistance & Team Handover** | [`backend/api/backup_requests.py`](file:///Users/vanshkumar/Downloads/H2/backend/api/backup_requests.py)<br>`POST /api/backup-requests/`<br>`POST /api/backup-requests/{id}/assign`<br>`POST /api/backup-requests/{id}/status` | [`frontend/src/components/BackupRequestModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/BackupRequestModal.tsx)<br>[`frontend/src/components/views/BackupRequestsView.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/views/BackupRequestsView.tsx) | Assigned team clicks "Request Backup" to request Helicopters, Boats, Ambulances, Comms, or Personnel. Single incident record maintained. Supports Partial Assistance and Complete Handover. Coordinator assigns verified available teams. |
+| **5. AI Emergency Assistant with Voice Reporting** | [`backend/services/ai_assistant_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/ai_assistant_service.py)<br>`POST /api/ai-assistant/chat`<br>`POST /api/ai-assistant/submit-voice-report`<br>`GET /api/ai-assistant/status/{ref}` | [`frontend/src/components/AIAssistantModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/AIAssistantModal.tsx) | Meesho-style voice & text chatbot. Web Speech API with Hindi & English support. Extracts emergency type, location, affected count, injuries, and needed resources. Directly creates incident in backend and returns reference code. Checks live status. |
+| **6. Grounded Resource Recommendations** | [`backend/services/recommendation_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/recommendation_service.py)<br>`GET /api/incidents/{id}/recommendations` | [`frontend/src/components/ResourceRecommendationModal.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/ResourceRecommendationModal.tsx) | Automatically matches incident characteristics to supplies. Checks live `available_qty` in the database—never claims assets are available if stock is 0. Coordinator approves allocation. |
+| **7. Unified Notifications & Central Dashboard** | [`backend/services/notification_service.py`](file:///Users/vanshkumar/Downloads/H2/backend/services/notification_service.py)<br>`GET /api/notifications/`<br>`POST /api/notifications/{id}/read` | [`frontend/src/components/NotificationDrawer.tsx`](file:///Users/vanshkumar/Downloads/H2/frontend/src/components/NotificationDrawer.tsx) | Unified alert center for critical incidents, upcoming/missed deadlines, backup requests, team assignments, and status updates. Unread badge with slide-out drawer. |
+| **8. Database Auto-Migration & Integrity** | [`backend/database/models.py`](file:///Users/vanshkumar/Downloads/H2/backend/database/models.py)<br>[`backend/database/db.py`](file:///Users/vanshkumar/Downloads/H2/backend/database/db.py) | Full schema preservation | SQLite auto-migration using `PRAGMA table_info` and `ALTER TABLE ... ADD COLUMN` ensures existing database files seamlessly upgrade without data loss. |
 
 ---
 
-## 🚀 Quickstart & Run Instructions
+## 🚀 Quickstart & Setup Instructions
 
 ### Prerequisites
-* **Python 3.9+**
+* **Python 3.9+** (Virtual environment included at `.venv`)
 * **Node.js 18+** & **npm**
 
-### Step 1: Set Up & Run the Backend
+### Step 1: Start the Backend Server
 ```bash
-# 1. Navigate to the project root
+# 1. Open terminal and navigate to project root
 cd /Users/vanshkumar/Downloads/H2
 
-# 2. Activate Python virtual environment
+# 2. Activate virtual environment
 source .venv/bin/activate
 
-# 3. (Optional) Inspect environment variables
-cp .env.example .env
+# 3. (Optional) Re-seed fresh demo data
+PYTHONPATH=. python backend/seed.py
 
-# 4. Start the FastAPI backend server (Runs on port 8000)
+# 4. Start the FastAPI backend server with WebSockets (port 8000)
 PYTHONPATH=. uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-*API Documentation & Swagger UI:* [http://localhost:8000/docs](http://localhost:8000/docs)  
-*Health Check:* [http://localhost:8000/health](http://localhost:8000/health)
+* **Swagger API Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)  
+* **Health Check:** [http://localhost:8000/health](http://localhost:8000/health)
 
-### Step 2: Set Up & Run the Frontend Command Center
-Open a second terminal window:
+### Step 2: Start the Frontend Application
 ```bash
-# 1. Navigate to frontend directory
+# In a new terminal window:
 cd /Users/vanshkumar/Downloads/H2/frontend
 
-# 2. Start the Vite development server (Runs on port 5173)
+# Start the Vite development server (port 5173)
 npm run dev
 ```
-*Open in Browser:* [http://localhost:5173](http://localhost:5173)
+* **Application URL:** [http://localhost:5173](http://localhost:5173)
 
 ---
 
 ## 🧪 Automated Test Suite
 
-The test suite validates every module with **16 comprehensive automated tests**:
-* `test_db_and_models.py`: Model creation, schema relations, and computed properties.
-* `test_domain_services.py`: Explainable priority formulas, inventory allocation/reservation limits, team skill matches, and shelter capacity checks.
-* `test_routing_and_replanning.py`: Road-closure avoidance routing, flood trigger event replanning, and shelter overflow diversion.
-* `test_simulator.py`: Repeatable step-by-step flood simulation, sensor updates, critical incident generation, and baseline reset.
-* `test_api_integration.py`: End-to-end REST and WebSocket API validation via FastAPI `TestClient`.
+The test suite validates every module with **33 automated tests**:
+* `backend/tests/test_adracs_features.py` (10 tests):
+  - Dynamic deadline calculation (Critical severity vs transit distance).
+  - Arrival tracking (`/mark-arrival`) and resolution (`/resolve`) separation.
+  - 5-star performance rating calculation and disaster hazard exceptions.
+  - Delay notification, team explanation, and supervisor corrective actions.
+  - Backup request creation, multi-resource selection, and coordinator assignment.
+  - Grounded resource recommendations checking live inventory stock.
+  - AI Assistant bilingual NLP entity extraction (Hindi & English).
+  - Web Speech voice report direct submission and status retrieval.
+  - Team assignment prevention for restricted teams.
+  - Deadline adjustment with mandatory justification audit log.
+* `backend/tests/test_api_integration.py` (7 tests): REST & WebSocket endpoints.
+* `backend/tests/test_scenarios_a_to_g.py` (7 tests): Complex multi-step field scenarios.
+* `backend/tests/test_domain_services.py` (4 tests): Core scoring and triage logic.
+* `backend/tests/test_routing_and_replanning.py` (3 tests): Road-closure avoidance and OSRM rerouting.
+* `backend/tests/test_simulator.py` (1 test): Flood simulation lifecycle.
+* `backend/tests/test_db_and_models.py` (1 test): Database model integrity.
 
-### Running Tests
+### Running the Test Suite
 ```bash
 cd /Users/vanshkumar/Downloads/H2
 source .venv/bin/activate
-PYTHONPATH=. pytest backend/tests/ -v
+PYTHONPATH=. pytest backend/tests -v
 ```
-*Expected Result:* **16 passed (100%)**
+*Expected Result:* **33 passed (100%)**
 
 ---
 
-## 🎮 Hackathon Demonstration Walkthrough
+## 🎓 Teacher & Demonstration Guide
 
-When presenting to judges, follow this step-by-step scenario:
+Follow this guide to demonstrate all features to your teacher:
 
-1. **Baseline State:**
-   - Launch the dashboard at `http://localhost:5173`.
-   - Point out the **"SIMULATED DATA"** badge in the header.
-   - Note the baseline conditions: River water level at **2.40m** (Normal), all evacuation routes showing **Green (Safe)**, and 1 medium priority river advisory.
-2. **Step-by-Step Flood Surge:**
-   - Click the **"Step"** button in the header toolbar twice.
-   - Watch the water level climb from $2.40\text{m} \rightarrow 2.75\text{m} \rightarrow 3.10\text{m}$.
-   - On the 3rd step (water level $\ge 3.40\text{m}$), observe the system **automatically detect a critical flood surge**:
-     - A new Critical Incident appears: *"Flash Inundation - Low-Lying Riverfront"*.
-     - Its explainable priority score jumps to $\ge 75.0$. Expand the card to show judges the exact mathematical breakdown (Severity, Hazard, Vulnerability, Wait Time).
-3. **Team Dispatch:**
-   - Click **"Auto-Assign Team"** on the incident card.
-   - The system checks available teams, matches the `Flood Rescue` specialization, calculates proximity, dispatches `NDRF Team Alpha`, and marks the incident `In Progress`.
-4. **Road Flooding & Dynamic Auto-Reroute:**
-   - Step the simulation until water level exceeds **$5.0\text{m}$**.
-   - The Mula-Mutha Causeway sensor turns **Critical (Red)**.
-   - The route transitions to **Blocked (Dashed Red Line)** on the map.
-   - The system executes **Module 7 Event-Triggered Replanning**:
-     - Calculates an avoidance perimeter detour via OSRM.
-     - Logs the reason in the **Decision Audit Trail**.
-5. **Shelter Saturation & Diversion:**
-   - Switch to the **"Evac Shelters"** tab.
-   - Click *"Admit Evacuees"* to saturate Pune Municipal Shelter.
-   - When occupancy reaches 100%, subsequent evacuations are automatically diverted to the secondary sports complex shelter.
-6. **Repeatable Reset:**
-   - Click the **"Reset"** button in the header.
-   - The entire database and simulator cleanly reset to Tick #0 baseline state.
+### Step 1: Demonstrate the Demo Role Switcher
+* Look at the top navigation bar. Notice the **Demo Role** toggle:
+  - **Admin / Control Room:** Full supervisory authority to adjust deadlines, review delays, and assign backups.
+  - **Rescue Team Responder:** Field perspective showing assigned incidents, "Request Backup", and arrival reporting.
+  - **Public Citizen:** Highlights the **AI Voice Assistant** with a prominent citizen emergency banner.
+
+### Step 2: Demonstrate the AI Emergency Assistant with Voice Reporting
+* Click the glowing **"Voice SOS"** or **"AI Voice Assistant"** button.
+* Select language (**English** or **हिंदी**).
+* Click the microphone button and speak (or click one of the pre-loaded **Voice Demo** quick-speech buttons, e.g. Hindi: *"Main flood mein phansa hua hoon. Mere paas teen log hain. Humein medical help chahiye..."*).
+* Observe the AI extract:
+  - **Emergency Type:** Flood / Inundation
+  - **Location:** Pune Riverbank / Low-lying area
+  - **People Affected:** 3
+  - **Required Resources:** Rescue boat, Medical team
+* Click **"Submit Emergency Report to Dispatch"**.
+* The system assigns a real incident reference code (e.g., `ADR-2026-XXXX`).
+* Switch to the **"Check Incident Status"** tab in the modal and paste the reference code to see live triage status.
+
+### Step 3: Demonstrate Emergency Rescue Deadlines & Live Countdown
+* Switch the view to the **Operations Map**.
+* In the right-hand **Incident Priority Queue**, inspect the active incident cards:
+  - Each card displays a live ticking **DeadlineCountdown**:
+    - Normal (Cyan/Green): e.g., `42m 15s remaining`.
+    - Warning (Amber): `< 15m remaining`.
+    - Delayed (Red flashing): `OVERDUE by 08m 20s`.
+  - Notice the separate tracking buttons:
+    - **Mark Team Arrived:** Records actual arrival timestamp and checks whether the team arrived on time or late.
+    - **Resolve Rescue:** Records rescue completion, victim safety status, and calculates the team's 5-star score.
+  - Click **"Adjust Deadline"**: Enter a new time and a mandatory reason (e.g., *"Flash flood washed out river access road"*). Show the audit confirmation.
+
+### Step 4: Demonstrate Delay Consequences & Fair Accountability
+* On a delayed incident, click **"Report/Review Delay"**:
+  - As a **Responder**, select delay category (e.g., *Road Blocked*, *Severe Weather*, *Equipment Failure*) and submit an operational explanation.
+  - Switch role to **Admin**: Review the explanation and select a corrective action (e.g., *Justified Hazard Exception*, *Formal Warning*, *Additional Training*, or *Temporary Assignment Restriction*).
+  - Emphasize to the teacher: **Genuine disaster hazards are marked as approved exceptions and do not penalize responders unfairly.**
+
+### Step 5: Demonstrate Rescue Team Performance Ratings
+* Click the **"Rescue Teams & Ratings"** tab in the left sidebar.
+* View the performance cards for each team:
+  - **Average Rating (out of 5.0 ★)**
+  - **Completed Rescues**
+  - **On-Time Response Rate %**
+  - **Delayed Rescues Count**
+* Click **"View Rating Breakdown & History"** to show individual past mission ratings.
+* Show the **"Dispute Rating"** feature where teams can request supervisory review if an unfair penalty was applied due to disaster conditions.
+
+### Step 6: Demonstrate Emergency Backup & Handover
+* On the Teams view or on an assigned incident card, click **"Request Backup"**.
+* The modal allows selecting required resources:
+  - Helicopter
+  - Rescue Boat
+  - Ambulance
+  - Medical Team
+  - Fire Brigade
+  - Additional Personnel
+* Select **Urgency Level** (Critical / High) and choose **Handover Mode** (*Partial Assistance* vs *Complete Mission Handover*).
+* Submit the request.
+* Switch to the **"Backup & Handover"** tab in the sidebar:
+  - View the incoming request in the control room dashboard.
+  - Select an available team from the verified list, enter estimated transit time, and click **"Dispatch Backup Team"**.
+  - Notice the status update and the requesting team's notification!
+
+### Step 7: Demonstrate Grounded Resource Recommendations
+* On any active incident in the priority queue, click the **"Resource Advice"** sparkle icon.
+* The modal analyzes the incident (e.g., Flood + Casualties) and recommends appropriate resources (e.g., Rescue Boats, Trauma Packs, Ambulances).
+* Point out the **"Stock Confirmed"** check: it directly checks live inventory in the database, ensuring control rooms never dispatch non-existent equipment.
+
+### Step 8: Demonstrate Real-Time Notifications
+* Click the **Bell Icon** in the top navigation.
+* The slide-out notification drawer displays categorized alerts:
+  - Critical Incidents
+  - Upcoming & Missed Deadlines
+  - Backup Dispatches
+  - Team Status Updates
+* Click **"Mark All Read"** or dismiss individual alerts.
 
 ---
 
-## 🔒 Source Code Integrity & Security
+## 🔒 Security, Safety Guarantees & Constraints
 
-* **Upstream Preservation:** Neither [`ResQNet`](file:///Users/vanshkumar/ResQNet) nor [`Autonomous-Disaster-Response-And-Coordination-System`](file:///Users/vanshkumar/Autonomous-Disaster-Response-And-Coordination-System) was modified or overwritten.
-* **Credentials:** No secrets, tokens, or private credentials are hardcoded. A template `.env.example` is provided, and local `.db` files and environment configs are gitignored.
+1. **Simulated Data Integrity:** All mock data is clearly badged with a glowing `"SIMULATED DATA"` indicator in the header.
+2. **Immutable Audit Trail:** All administrative decisions (deadline extensions, delay reviews, backup assignments) are permanently logged in the `PlanAuditLog` table.
+3. **Restricted Team Protection:** Teams placed under temporary restriction cannot be auto-assigned to new incidents until cleared by a supervisor.
+4. **Speech Privacy:** Raw audio is processed locally via browser Web Speech API; only finalized text transcripts are transmitted to the backend.
+5. **No Hardcoded Secrets:** All configurations use environment variables with fallback defaults.
+
+---
+
+## 👥 Contributors & Academic Context
+
+* **Project:** Autonomous Disaster Response and Coordination System (ADRACS)
+* **Stack:** Python 3.9+, FastAPI, SQLAlchemy 2.0, SQLite, Socket.IO, React 19, Vite, Tailwind CSS, MapLibre GL.

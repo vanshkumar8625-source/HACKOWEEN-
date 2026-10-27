@@ -4,7 +4,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { io, Socket } from 'socket.io-client';
 import {
   Activity, Users, Home, Package, History,
-  ShieldAlert, Droplets, Truck, Layers
+  ShieldAlert, Droplets, Truck, Layers, HelpCircle,
+  Sparkles, Mic, Bell, Clock
 } from 'lucide-react';
 
 import { SimulationHeader } from '../components/SimulationHeader';
@@ -14,12 +15,22 @@ import { TeamsView } from '../components/views/TeamsView';
 import { SheltersView } from '../components/views/SheltersView';
 import { ResourcesView } from '../components/views/ResourcesView';
 import { AuditLogsView } from '../components/views/AuditLogsView';
+import { BackupRequestsView } from '../components/views/BackupRequestsView';
+
+// New Feature Modals
+import { AIAssistantModal } from '../components/AIAssistantModal';
+import { NotificationDrawer } from '../components/NotificationDrawer';
+import { BackupRequestModal } from '../components/BackupRequestModal';
+import { DeadlineAdjustModal } from '../components/DeadlineAdjustModal';
+import { DelayReviewModal } from '../components/DelayReviewModal';
+import { ResourceRecommendationModal } from '../components/ResourceRecommendationModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<'map' | 'teams' | 'shelters' | 'resources' | 'audit'>('map');
-  
+  const [activeTab, setActiveTab] = useState<'map' | 'teams' | 'shelters' | 'resources' | 'audit' | 'backups'>('map');
+  const [userRole, setUserRole] = useState<'admin' | 'responder' | 'citizen'>('admin');
+
   // Data state
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
@@ -28,7 +39,9 @@ export default function Dashboard() {
   const [routes, setRoutes] = useState<any[]>([]);
   const [sensors, setSensors] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
-  
+  const [backupRequests, setBackupRequests] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
   // Simulation state
   const [simStatus, setSimStatus] = useState({
     is_running: false,
@@ -39,8 +52,16 @@ export default function Dashboard() {
     shelter_occupancy_total: 0
   });
 
-  // Modal & selection
+  // Modal & selection state
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [adjustDeadlineIncident, setAdjustDeadlineIncident] = useState<Incident | null>(null);
+  const [backupRequestIncident, setBackupRequestIncident] = useState<Incident | null>(null);
+  const [backupModalTeamId, setBackupModalTeamId] = useState<number | null>(null);
+  const [delayReviewIncident, setDelayReviewIncident] = useState<Incident | null>(null);
+  const [recommendationsIncident, setRecommendationsIncident] = useState<Incident | null>(null);
+
   const [, setSelectedIncident] = useState<Incident | null>(null);
   const [viewState, setViewState] = useState({
     latitude: 18.5204,
@@ -53,25 +74,33 @@ export default function Dashboard() {
   // Fetch all domain data
   const refreshData = async () => {
     try {
-      const [incRes, teamRes, shelterRes, resRes, routeRes, sensorRes, auditRes, simRes] = await Promise.all([
-        fetch(`${API_URL}/api/incidents/`).then(r => r.json()),
-        fetch(`${API_URL}/api/teams/`).then(r => r.json()),
-        fetch(`${API_URL}/api/shelters/`).then(r => r.json()),
-        fetch(`${API_URL}/api/resources/`).then(r => r.json()),
-        fetch(`${API_URL}/api/routes/`).then(r => r.json()),
-        fetch(`${API_URL}/api/sensors/`).then(r => r.json()),
-        fetch(`${API_URL}/api/audit-logs/`).then(r => r.json()),
-        fetch(`${API_URL}/api/simulation/status`).then(r => r.json())
+      const [
+        incRes, teamRes, shelterRes, resRes,
+        routeRes, sensorRes, auditRes, simRes,
+        backupRes, notifRes
+      ] = await Promise.all([
+        fetch(`${API_URL}/api/incidents/`).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${API_URL}/api/teams/`).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${API_URL}/api/shelters/`).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${API_URL}/api/resources/`).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${API_URL}/api/routes/`).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${API_URL}/api/sensors/`).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${API_URL}/api/audit-logs/`).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${API_URL}/api/simulation/status`).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch(`${API_URL}/api/backup-requests/`).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${API_URL}/api/notifications/`).then(r => r.ok ? r.json() : []).catch(() => [])
       ]);
 
-      setIncidents(incRes || []);
-      setTeams(teamRes || []);
-      setShelters(shelterRes || []);
-      setResources(resRes || []);
-      setRoutes(routeRes || []);
-      setSensors(sensorRes || []);
-      setAuditLogs(auditRes || []);
-      if (simRes) setSimStatus(simRes);
+      setIncidents(Array.isArray(incRes) ? incRes : []);
+      setTeams(Array.isArray(teamRes) ? teamRes : []);
+      setShelters(Array.isArray(shelterRes) ? shelterRes : []);
+      setResources(Array.isArray(resRes) ? resRes : []);
+      setRoutes(Array.isArray(routeRes) ? routeRes : []);
+      setSensors(Array.isArray(sensorRes) ? sensorRes : []);
+      setAuditLogs(Array.isArray(auditRes) ? auditRes : []);
+      if (simRes && typeof simRes === 'object') setSimStatus(simRes);
+      setBackupRequests(Array.isArray(backupRes) ? backupRes : []);
+      setNotifications(Array.isArray(notifRes) ? notifRes : []);
     } catch (err) {
       console.error("Failed refreshing dashboard data:", err);
     }
@@ -91,15 +120,28 @@ export default function Dashboard() {
     });
 
     // Real-time event handlers
-    socketRef.current.on('incident_created', () => refreshData());
-    socketRef.current.on('team_dispatched', () => refreshData());
-    socketRef.current.on('team_status_changed', () => refreshData());
-    socketRef.current.on('shelter_updated', () => refreshData());
-    socketRef.current.on('resource_updated', () => refreshData());
-    socketRef.current.on('route_closure_event', () => refreshData());
-    socketRef.current.on('route_status_changed', () => refreshData());
-    socketRef.current.on('simulation_stepped', () => refreshData());
-    socketRef.current.on('simulation_reset', () => refreshData());
+    const realtimeEvents = [
+      'incident_created',
+      'team_dispatched',
+      'team_status_changed',
+      'shelter_updated',
+      'resource_updated',
+      'route_closure_event',
+      'route_status_changed',
+      'simulation_stepped',
+      'simulation_reset',
+      'backup_requested',
+      'backup_assigned',
+      'notification_created',
+      'deadline_adjusted',
+      'incident_delayed',
+      'incident_arrived',
+      'incident_resolved'
+    ];
+
+    realtimeEvents.forEach(evt => {
+      socketRef.current?.on(evt, () => refreshData());
+    });
 
     // Fallback polling every 5s
     const interval = setInterval(refreshData, 5000);
@@ -149,6 +191,176 @@ export default function Dashboard() {
     } else {
       refreshData();
     }
+  };
+
+  // Mark team arrival (Feature 1)
+  const handleMarkArrival = async (incidentId: number) => {
+    const res = await fetch(`${API_URL}/api/incidents/${incidentId}/mark-arrival`, {
+      method: 'POST'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Arrival registration failed: ${err.detail}`);
+    } else {
+      const data = await res.json();
+      if (data.deadline_status === 'Delayed') {
+        alert(`Team arrived ON SCENE. Notice: Response arrived past deadline (${data.deadline_status}). You can provide delay explanation.`);
+      } else {
+        alert(`Team arrived ON SCENE: marked ${data.deadline_status.toUpperCase()}!`);
+      }
+      refreshData();
+    }
+  };
+
+  // Resolve rescue (Feature 1 & 2)
+  const handleResolveRescue = async (incidentId: number) => {
+    const res = await fetch(`${API_URL}/api/incidents/${incidentId}/resolve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        victim_safety_status: 'All Safe',
+        notes: 'Rescue mission successfully completed by responders.'
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Resolution failed: ${err.detail}`);
+    } else {
+      const data = await res.json();
+      alert(`Incident marked RESOLVED. Team score awarded: ${data.awarded_score ? data.awarded_score + '★' : 'Calculated'}`);
+      refreshData();
+    }
+  };
+
+  // Adjust deadline (Feature 1)
+  const handleAdjustDeadline = async (newDeadline: string, reason: string) => {
+    if (!adjustDeadlineIncident) return;
+    const res = await fetch(`${API_URL}/api/incidents/${adjustDeadlineIncident.id}/adjust-deadline`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        new_deadline_at: newDeadline,
+        extension_reason: reason
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Deadline adjustment failed: ${err.detail}`);
+    } else {
+      alert(`Deadline updated successfully with logged audit justification.`);
+      refreshData();
+    }
+  };
+
+  // Explain delay (Feature 3)
+  const handleExplainDelay = async (incidentId: number, category: string, reason: string) => {
+    const res = await fetch(`${API_URL}/api/incidents/${incidentId}/explain-delay`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        delay_category: category,
+        delay_reason: reason
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Submitting explanation failed: ${err.detail}`);
+    } else {
+      alert(`Delay explanation submitted. Control room supervisor has been alerted.`);
+      refreshData();
+    }
+  };
+
+  // Review delay decision (Feature 3)
+  const handleReviewDelayDecision = async (incidentId: number, decision: string, notes: string) => {
+    const res = await fetch(`${API_URL}/api/incidents/${incidentId}/review-delay`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision, notes })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Supervisory review failed: ${err.detail}`);
+    } else {
+      alert(`Supervisory ruling recorded: ${decision}. Corrective action logged in audit trail.`);
+      refreshData();
+    }
+  };
+
+  // Backup Request Submission (Feature 4)
+  const handleCreateBackupRequest = async (payload: any) => {
+    const res = await fetch(`${API_URL}/api/backup-requests/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Failed submitting backup request');
+    }
+    alert("Emergency backup request logged on central control dispatch!");
+    refreshData();
+  };
+
+  // Assign Backup (Feature 4)
+  const handleAssignBackup = async (reqId: number, teamId: number, handoverType: string, eta: number) => {
+    const res = await fetch(`${API_URL}/api/backup-requests/${reqId}/assign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        backup_team_id: teamId,
+        handover_type: handoverType,
+        eta_minutes: eta
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Failed assigning backup: ${err.detail}`);
+    } else {
+      alert(`Backup team successfully dispatched! Requesting unit has been notified.`);
+      refreshData();
+    }
+  };
+
+  // Update Backup Request Status (Feature 4)
+  const handleUpdateBackupStatus = async (reqId: number, status: string) => {
+    const res = await fetch(`${API_URL}/api/backup-requests/${reqId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Status update failed: ${err.detail}`);
+    } else {
+      refreshData();
+    }
+  };
+
+  // Toggle Team Restriction (Feature 2 & 3)
+  const handleToggleTeamRestriction = async (teamId: number, isRestricted: boolean, reason?: string) => {
+    const res = await fetch(`${API_URL}/api/teams/${teamId}/restriction`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ is_restricted: isRestricted, reason: reason || 'Administrative action' })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(`Action failed: ${err.detail}`);
+    } else {
+      refreshData();
+    }
+  };
+
+  // Notifications (Feature 7)
+  const handleMarkNotificationRead = async (id: number) => {
+    await fetch(`${API_URL}/api/notifications/${id}/read`, { method: 'POST' });
+    refreshData();
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    await fetch(`${API_URL}/api/notifications/read-all`, { method: 'POST' });
+    refreshData();
   };
 
   // Team status update
@@ -225,14 +437,41 @@ export default function Dashboard() {
     })
   };
 
+  const unreadNotifsCount = Array.isArray(notifications) ? notifications.filter(n => !n.is_read).length : 0;
+  const pendingBackupsCount = Array.isArray(backupRequests) ? backupRequests.filter(b => b.status === 'Pending').length : 0;
+
   return (
     <div className="h-screen w-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans flex flex-col">
       {/* Top Header */}
       <SimulationHeader
         simulationStatus={simStatus}
+        userRole={userRole}
+        onRoleChange={setUserRole}
+        unreadNotificationsCount={unreadNotifsCount}
+        onOpenNotifications={() => setIsNotificationOpen(true)}
+        onOpenAIAssistant={() => setIsAIAssistantOpen(true)}
         onControl={handleSimulationControl}
         onOpenReportModal={() => setIsReportModalOpen(true)}
       />
+
+      {/* Citizen Mode Banner */}
+      {userRole === 'citizen' && (
+        <div className="bg-gradient-to-r from-teal-950/80 via-emerald-950/80 to-zinc-900 border-b border-teal-500/30 px-4 py-2 flex items-center justify-between text-xs shrink-0">
+          <div className="flex items-center gap-2 text-teal-300">
+            <Sparkles className="w-4 h-4 text-teal-400 animate-pulse" />
+            <span>
+              <strong>Citizen Emergency Portal Active:</strong> Use the <strong>Voice SOS Assistant</strong> to report trapped individuals or track your incident reference code without typing.
+            </span>
+          </div>
+          <button
+            onClick={() => setIsAIAssistantOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1 bg-teal-500 hover:bg-teal-400 text-zinc-950 rounded-lg font-bold transition shadow-sm"
+          >
+            <Mic className="w-3.5 h-3.5" />
+            Launch Voice SOS
+          </button>
+        </div>
+      )}
 
       {/* Main Container */}
       <div className="flex-1 flex overflow-hidden">
@@ -259,7 +498,22 @@ export default function Dashboard() {
               }`}
             >
               <Users className="w-4 h-4 shrink-0" />
-              <span className="ml-3 hidden lg:block">Rescue Teams</span>
+              <span className="ml-3 hidden lg:block">Rescue Teams & Ratings</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('backups')}
+              className={`w-full flex items-center p-2.5 rounded-lg text-xs font-semibold transition relative ${
+                activeTab === 'backups' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'text-zinc-400 hover:bg-zinc-800'
+              }`}
+            >
+              <HelpCircle className="w-4 h-4 shrink-0" />
+              <span className="ml-3 hidden lg:block">Backup & Handover</span>
+              {pendingBackupsCount > 0 && (
+                <span className="ml-auto hidden lg:inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-red-500 text-white animate-pulse">
+                  {pendingBackupsCount}
+                </span>
+              )}
             </button>
 
             <button
@@ -290,6 +544,17 @@ export default function Dashboard() {
             >
               <History className="w-4 h-4 shrink-0" />
               <span className="ml-3 hidden lg:block">Decision Audit Trail</span>
+            </button>
+          </div>
+
+          {/* Quick Voice SOS launch */}
+          <div className="p-2 border-t border-zinc-800">
+            <button
+              onClick={() => setIsAIAssistantOpen(true)}
+              className="w-full flex items-center justify-center gap-2 p-2.5 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-zinc-950 font-bold rounded-xl text-xs shadow-lg transition"
+            >
+              <Mic className="w-4 h-4 shrink-0" />
+              <span className="hidden lg:block">AI Voice Assistant</span>
             </button>
           </div>
 
@@ -341,6 +606,7 @@ export default function Dashboard() {
                 {/* Incident Markers */}
                 {incidents.map(inc => {
                   const isCritical = inc.severity === 'Critical';
+                  const isDelayed = inc.deadline_status === 'Delayed';
                   return (
                     <Marker
                       key={`inc-${inc.id}`}
@@ -352,13 +618,20 @@ export default function Dashboard() {
                       }}
                     >
                       <div className="relative flex items-center justify-center cursor-pointer group">
-                        <span className={`animate-ping absolute inline-flex h-6 w-6 rounded-full opacity-75 ${isCritical ? 'bg-red-500' : 'bg-amber-500'}`} />
-                        <div className={`relative flex items-center justify-center w-7 h-7 rounded-full text-white shadow-lg border-2 border-zinc-950 ${isCritical ? 'bg-red-600' : 'bg-amber-600'}`}>
+                        <span className={`animate-ping absolute inline-flex h-6 w-6 rounded-full opacity-75 ${
+                          isDelayed ? 'bg-red-600' : isCritical ? 'bg-red-500' : 'bg-amber-500'
+                        }`} />
+                        <div className={`relative flex items-center justify-center w-7 h-7 rounded-full text-white shadow-lg border-2 border-zinc-950 ${
+                          isDelayed ? 'bg-red-600 ring-2 ring-red-400' : isCritical ? 'bg-red-600' : 'bg-amber-600'
+                        }`}>
                           <ShieldAlert className="w-3.5 h-3.5" />
                         </div>
                         {/* Hover Tooltip */}
                         <div className="absolute bottom-8 bg-zinc-900 border border-zinc-700 text-zinc-100 text-[10px] px-2 py-1 rounded shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none z-50">
                           <strong>{inc.title}</strong> ({inc.severity})
+                          {inc.deadline_status && (
+                            <span className="ml-1 text-amber-400">[{inc.deadline_status}]</span>
+                          )}
                         </div>
                       </div>
                     </Marker>
@@ -373,11 +646,13 @@ export default function Dashboard() {
                     longitude={team.longitude}
                   >
                     <div className="relative flex items-center justify-center cursor-pointer group">
-                      <div className="flex items-center justify-center w-6 h-6 rounded-md bg-indigo-600 text-white shadow border border-zinc-950">
+                      <div className={`flex items-center justify-center w-6 h-6 rounded-md text-white shadow border border-zinc-950 ${
+                        team.is_restricted ? 'bg-zinc-700 opacity-60' : 'bg-indigo-600'
+                      }`}>
                         <Truck className="w-3.5 h-3.5" />
                       </div>
                       <div className="absolute bottom-7 bg-zinc-900 border border-zinc-700 text-[10px] px-2 py-0.5 rounded shadow whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none z-50">
-                        {team.name} ({team.status})
+                        {team.name} ({team.status}) - {team.average_rating ? team.average_rating.toFixed(1) : '5.0'}★
                       </div>
                     </div>
                   </Marker>
@@ -426,7 +701,7 @@ export default function Dashboard() {
                   <Layers className="w-3 h-3 text-teal-400" /> Map Legend
                 </div>
                 <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-500" /> Critical Incidents</div>
-                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-md bg-indigo-500" /> Rescue Teams</div>
+                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-md bg-indigo-500" /> Rescue Teams (Rated)</div>
                 <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-md bg-emerald-500" /> Accessible Shelters</div>
                 <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-teal-400" /> Clear Evacuation Route</div>
                 <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-red-500 border-dashed" /> Blocked Road (Flooded)</div>
@@ -435,7 +710,27 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'teams' && (
-            <TeamsView teams={teams} onUpdateStatus={handleUpdateTeamStatus} />
+            <TeamsView
+              teams={teams}
+              userRole={userRole}
+              onUpdateStatus={handleUpdateTeamStatus}
+              onToggleRestriction={handleToggleTeamRestriction}
+              onRequestBackup={teamId => {
+                setBackupModalTeamId(teamId);
+                const assignedInc = incidents.find(i => i.assigned_team_id === teamId && i.status !== 'Resolved');
+                setBackupRequestIncident(assignedInc || null);
+              }}
+              apiUrl={API_URL}
+            />
+          )}
+
+          {activeTab === 'backups' && (
+            <BackupRequestsView
+              backupRequests={backupRequests}
+              teams={teams}
+              onAssignBackup={handleAssignBackup}
+              onUpdateStatus={handleUpdateBackupStatus}
+            />
           )}
 
           {activeTab === 'shelters' && (
@@ -459,7 +754,17 @@ export default function Dashboard() {
             <div className="w-80 lg:w-96 border-l border-zinc-800 hidden md:block shrink-0 h-full">
               <PriorityQueue
                 incidents={incidents}
+                userRole={userRole}
                 onAutoAssignTeam={handleAutoAssignTeam}
+                onMarkArrival={handleMarkArrival}
+                onResolveRescue={handleResolveRescue}
+                onOpenAdjustDeadline={inc => setAdjustDeadlineIncident(inc)}
+                onOpenBackupRequest={inc => {
+                  setBackupRequestIncident(inc);
+                  setBackupModalTeamId(inc.assigned_team_id || 1);
+                }}
+                onOpenDelayReview={inc => setDelayReviewIncident(inc)}
+                onOpenRecommendations={inc => setRecommendationsIncident(inc)}
                 onSelectIncident={inc => {
                   setViewState({
                     latitude: inc.latitude,
@@ -473,12 +778,81 @@ export default function Dashboard() {
         </main>
       </div>
 
-      {/* Incident Intake Modal */}
+      {/* Incident Intake Modal (Manual Form) */}
       <IncidentModal
         isOpen={isReportModalOpen}
         onClose={() => setIsReportModalOpen(false)}
         onSubmit={handleCreateIncident}
       />
+
+      {/* AI Emergency Assistant with Voice & Text (Feature 5) */}
+      <AIAssistantModal
+        isOpen={isAIAssistantOpen}
+        onClose={() => setIsAIAssistantOpen(false)}
+        onIncidentCreated={refreshData}
+        apiUrl={API_URL}
+      />
+
+      {/* Notifications Drawer (Feature 7) */}
+      <NotificationDrawer
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        notifications={notifications}
+        onMarkRead={handleMarkNotificationRead}
+        onMarkAllRead={handleMarkAllNotificationsRead}
+      />
+
+      {/* Backup Request Modal (Feature 4) */}
+      {backupRequestIncident && (
+        <BackupRequestModal
+          isOpen={!!backupRequestIncident}
+          onClose={() => {
+            setBackupRequestIncident(null);
+            setBackupModalTeamId(null);
+          }}
+          onSubmit={handleCreateBackupRequest}
+          incidentId={backupRequestIncident.id}
+          requestingTeamId={backupModalTeamId || backupRequestIncident.assigned_team_id || 1}
+          initialLocation={backupRequestIncident.location_name}
+          initialLat={backupRequestIncident.latitude}
+          initialLng={backupRequestIncident.longitude}
+        />
+      )}
+
+      {/* Deadline Adjust Modal (Feature 1) */}
+      {adjustDeadlineIncident && (
+        <DeadlineAdjustModal
+          isOpen={!!adjustDeadlineIncident}
+          onClose={() => setAdjustDeadlineIncident(null)}
+          onSubmit={(newDeadline, reason) => handleAdjustDeadline(newDeadline, reason)}
+          incidentId={adjustDeadlineIncident.id}
+          currentDeadline={adjustDeadlineIncident.deadline_at}
+        />
+      )}
+
+      {/* Delay Review & Explanation Modal (Feature 3) */}
+      {delayReviewIncident && (
+        <DelayReviewModal
+          isOpen={!!delayReviewIncident}
+          onClose={() => setDelayReviewIncident(null)}
+          incident={delayReviewIncident}
+          userRole={userRole}
+          onSubmitExplanation={handleExplainDelay}
+          onSubmitDecision={handleReviewDelayDecision}
+        />
+      )}
+
+      {/* Grounded Resource Recommendation Modal (Feature 6) */}
+      {recommendationsIncident && (
+        <ResourceRecommendationModal
+          isOpen={!!recommendationsIncident}
+          onClose={() => setRecommendationsIncident(null)}
+          incidentId={recommendationsIncident.id}
+          incidentTitle={recommendationsIncident.title}
+          apiUrl={API_URL}
+          onAllocate={handleAllocateResource}
+        />
+      )}
     </div>
   );
 }

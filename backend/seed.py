@@ -1,18 +1,26 @@
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from backend.database.models import (
-    Base, User, Sensor, RescueTeam, Shelter, Resource, EvacuationRoute, Incident, Alert, PlanAuditLog
+    Base, User, Sensor, RescueTeam, Shelter, Resource, EvacuationRoute,
+    Incident, Alert, PlanAuditLog, TeamRating, DelayReview, BackupRequest, Notification
 )
 
 def seed_database(db: Session):
     """
     Seeds database with clean, repeatable realistic disaster coordination data
-    centered around the Maharashtra river basins (Pune, Mumbai, Kolhapur).
+    centered around Maharashtra river basins (Pune, Mumbai, Kolhapur) with full
+    deadline tracking, team ratings, and backup request demonstrations.
     """
-    from backend.database.db import Base, engine
+    from backend.database.db import Base, engine, auto_migrate_sqlite
     Base.metadata.create_all(bind=engine)
+    auto_migrate_sqlite(engine)
 
     # 1. Clean existing records in dependency order
     db.query(PlanAuditLog).delete()
+    db.query(Notification).delete()
+    db.query(BackupRequest).delete()
+    db.query(DelayReview).delete()
+    db.query(TeamRating).delete()
     db.query(Alert).delete()
     db.query(Incident).delete()
     db.query(RescueTeam).delete()
@@ -85,7 +93,7 @@ def seed_database(db: Session):
     ]
     db.add_all(sensors)
 
-    # 4. Seed Rescue Teams
+    # 4. Seed Rescue Teams (with performance ratings and accountability stats)
     teams = [
         RescueTeam(
             name="NDRF Team Alpha (Boats & Divers)",
@@ -94,7 +102,13 @@ def seed_database(db: Session):
             status="Available",
             latitude=18.5250,
             longitude=73.8500,
-            contact_number="+91-9876543201"
+            contact_number="+91-9876543201",
+            average_rating=4.9,
+            total_ratings=14,
+            completed_rescues=14,
+            on_time_rescues=13,
+            delayed_rescues=1,
+            is_restricted=False
         ),
         RescueTeam(
             name="SDRF Quick Response Unit 2",
@@ -103,7 +117,13 @@ def seed_database(db: Session):
             status="Available",
             latitude=18.5400,
             longitude=73.8700,
-            contact_number="+91-9876543202"
+            contact_number="+91-9876543202",
+            average_rating=4.6,
+            total_ratings=8,
+            completed_rescues=8,
+            on_time_rescues=7,
+            delayed_rescues=1,
+            is_restricted=False
         ),
         RescueTeam(
             name="Kolhapur Tactical Flood Unit",
@@ -112,7 +132,13 @@ def seed_database(db: Session):
             status="Available",
             latitude=16.7100,
             longitude=74.2400,
-            contact_number="+91-9876543203"
+            contact_number="+91-9876543203",
+            average_rating=4.8,
+            total_ratings=10,
+            completed_rescues=10,
+            on_time_rescues=10,
+            delayed_rescues=0,
+            is_restricted=False
         ),
         RescueTeam(
             name="State Emergency Medical Corps",
@@ -121,10 +147,17 @@ def seed_database(db: Session):
             status="Available",
             latitude=18.5100,
             longitude=73.8400,
-            contact_number="+91-9876543204"
+            contact_number="+91-9876543204",
+            average_rating=5.0,
+            total_ratings=18,
+            completed_rescues=18,
+            on_time_rescues=18,
+            delayed_rescues=0,
+            is_restricted=False
         )
     ]
     db.add_all(teams)
+    db.flush()
 
     # 5. Seed Shelters
     shelters = [
@@ -167,7 +200,7 @@ def seed_database(db: Session):
     ]
     db.add_all(shelters)
 
-    # 6. Seed Physical Supplies & Resources
+    # 6. Seed Physical Supplies & Resources (including Helicopters, Ambulances, and Boats)
     resources = [
         Resource(
             name="Inflatable Motorized Rescue Boats",
@@ -179,6 +212,39 @@ def seed_database(db: Session):
             location_name="Pune River Depot",
             latitude=18.5200,
             longitude=73.8500
+        ),
+        Resource(
+            name="Air Support / Rescue Helicopter (Dhruv)",
+            resource_type="Vehicle",
+            total_qty=3,
+            allocated_qty=1,
+            reserved_qty=0,
+            unit="aircraft",
+            location_name="Pune Air Base Heliport",
+            latitude=18.5800,
+            longitude=73.9100
+        ),
+        Resource(
+            name="Advanced Life Support (ALS) Ambulance",
+            resource_type="Vehicle",
+            total_qty=12,
+            allocated_qty=3,
+            reserved_qty=1,
+            unit="ambulances",
+            location_name="Central Trauma Response Center",
+            latitude=18.5250,
+            longitude=73.8550
+        ),
+        Resource(
+            name="Heavy Rescue Fire Tender Rig",
+            resource_type="Vehicle",
+            total_qty=6,
+            allocated_qty=1,
+            reserved_qty=0,
+            unit="vehicles",
+            location_name="Central Fire Station",
+            latitude=18.5180,
+            longitude=73.8520
         ),
         Resource(
             name="Emergency Food Rations (1000-pack)",
@@ -212,6 +278,17 @@ def seed_database(db: Session):
             location_name="General Hospital Depot",
             latitude=18.5250,
             longitude=73.8550
+        ),
+        Resource(
+            name="Satellite Emergency Radio Terminals",
+            resource_type="Comms",
+            total_qty=15,
+            allocated_qty=2,
+            reserved_qty=0,
+            unit="units",
+            location_name="State Command Center Depot",
+            latitude=18.5204,
+            longitude=73.8567
         )
     ]
     db.add_all(resources)
@@ -254,7 +331,8 @@ def seed_database(db: Session):
     ]
     db.add_all(routes)
 
-    # 8. Seed Baseline Active Incident
+    # 8. Seed Baseline Active Incidents with Response Deadlines
+    now = datetime.utcnow()
     incidents = [
         Incident(
             title="Mula River Water Level Alert",
@@ -267,16 +345,86 @@ def seed_database(db: Session):
             description="Dam outflow has elevated river level to 2.4 meters. Monitoring low-lying settlements.",
             status="Active",
             reported_by="Mula-Mutha Basin Sensor 1",
-            required_skill="Flood Rescue"
+            required_skill="Flood Rescue",
+            people_affected=12,
+            casualties_count=0,
+            deadline_at=now + timedelta(minutes=150),
+            estimated_arrival_at=now + timedelta(minutes=25),
+            deadline_status="Pending",
+            created_at=now - timedelta(minutes=30)
+        ),
+        Incident(
+            title="Old Bridge Structural Crack & Flooding",
+            disaster_type="flood",
+            severity="Critical",
+            priority_score=88.0,
+            location_name="Sangam Bridge Low-Lying Area",
+            latitude=18.5310,
+            longitude=73.8590,
+            description="Rapidly rising floodwaters cut off access for 4 stranded families. Immediate boat evacuation required.",
+            status="In Progress",
+            reported_by="Citizen SOS Helpline",
+            required_skill="Flood Rescue",
+            assigned_team_id=teams[0].id,
+            people_affected=16,
+            casualties_count=2,
+            deadline_at=now + timedelta(minutes=40),
+            estimated_arrival_at=now + timedelta(minutes=12),
+            deadline_status="Pending",
+            created_at=now - timedelta(minutes=20)
         )
     ]
     db.add_all(incidents)
+    db.flush()
 
-    # 9. Initial Audit Log
+    # 9. Seed Sample Backup Request (Requirement 4 demonstration)
+    backup_req = BackupRequest(
+        incident_id=incidents[1].id,
+        requesting_team_id=teams[0].id,
+        location_name="Sangam Bridge Low-Lying Area",
+        latitude=18.5310,
+        longitude=73.8590,
+        reason="Flood current velocity exceeding 3 m/s; primary boat team requires secondary winch team and medical trauma support.",
+        assistance_type="Medical Evacuation",
+        required_resources_json='["Inflatable Motorized Rescue Boats", "Advanced Life Support (ALS) Ambulance"]',
+        personnel_needed=4,
+        urgency="Critical",
+        status="Pending",
+        handover_type="Partial",
+        created_at=now - timedelta(minutes=10)
+    )
+    db.add(backup_req)
+
+    # 10. Seed Sample Notifications (Requirement 7 demonstration)
+    notifications = [
+        Notification(
+            title="🚨 Critical Incident: Sangam Bridge",
+            message="Critical flood evacuation assigned to NDRF Team Alpha. Response deadline: 40 mins remaining.",
+            category="CriticalIncident",
+            severity="Critical",
+            incident_id=incidents[1].id,
+            team_id=teams[0].id,
+            is_read=False,
+            created_at=now - timedelta(minutes=15)
+        ),
+        Notification(
+            title="🆘 Backup Request Submitted",
+            message="NDRF Team Alpha requested Medical Evacuation backup at Sangam Bridge. Coordinator review needed.",
+            category="BackupRequest",
+            severity="Warning",
+            incident_id=incidents[1].id,
+            team_id=teams[0].id,
+            is_read=False,
+            created_at=now - timedelta(minutes=8)
+        )
+    ]
+    db.add_all(notifications)
+
+    # 11. Initial Audit Log
     db.add(PlanAuditLog(
         entity_type="System",
         action="SystemSeeded",
-        reason="Baseline simulation dataset initialized for disaster coordination.",
+        reason="Baseline simulation dataset initialized for disaster coordination with deadline tracking, team rating, and backup requests.",
         triggered_by="SystemInit"
     ))
 

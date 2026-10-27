@@ -1,4 +1,5 @@
 import math
+from datetime import datetime, timedelta
 from typing import Optional, List, Tuple
 from sqlalchemy.orm import Session
 from backend.database.models import RescueTeam, Incident
@@ -27,17 +28,18 @@ def find_best_team(
 ) -> Tuple[Optional[RescueTeam], float, str]:
     """
     Evaluates available teams deterministically based on:
-    1. Availability status (Available or Returning)
+    1. Availability status (Available or Returning) and restriction check
     2. Skill compatibility
     3. Geographical proximity (Haversine distance)
     Returns: (best_team, distance_km, explanation)
     """
     eligible_teams = db.query(RescueTeam).filter(
-        RescueTeam.status.in_(["Available", "Returning"])
+        RescueTeam.status.in_(["Available", "Returning"]),
+        RescueTeam.is_restricted.is_(False)
     ).all()
 
     if not eligible_teams:
-        return None, 0.0, "No teams currently available in region."
+        return None, 0.0, "No teams currently available in region (all units deployed or restricted)."
 
     scored_candidates = []
     for team in eligible_teams:
@@ -55,7 +57,7 @@ def find_best_team(
     best_mismatch, best_dist, best_team = scored_candidates[0]
 
     match_desc = "Exact specialization match" if not best_mismatch else "Secondary general rescue compatibility"
-    explanation = f"Selected {best_team.name} ({best_team.specialization}) at {best_dist} km. Rationale: {match_desc}."
+    explanation = f"Selected {best_team.name} ({best_team.specialization}) at {best_dist} km. Rating: {best_team.average_rating}★. Rationale: {match_desc}."
 
     return best_team, best_dist, explanation
 
@@ -66,13 +68,25 @@ def assign_team_to_incident(
     triggered_by: str = "Coordinator"
 ) -> RescueTeam:
     """
-    Deterministically assigns a team to an incident and records audit history.
+    Deterministically assigns a team to an incident, updates ETA, and records audit history.
     """
     team = db.query(RescueTeam).filter(RescueTeam.id == team_id).first()
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
 
     if not team or not incident:
         raise ValueError("Invalid team_id or incident_id.")
+
+    if team.is_restricted:
+        log_event(
+            db=db,
+            entity_type="Team",
+            entity_id=team_id,
+            action="AssignmentRejected",
+            reason=f"Cannot assign {team.name}: Unit is under temporary restriction. Reason: {team.restriction_reason}",
+            details={"current_status": team.status, "incident_id": incident_id},
+            triggered_by=triggered_by
+        )
+        raise ValueError(f"Team {team.name} is restricted from accepting new assignments ({team.restriction_reason}).")
 
     if team.status not in ["Available", "Returning"]:
         log_event(
@@ -92,18 +106,21 @@ def assign_team_to_incident(
     if incident.status == "Active":
         incident.status = "In Progress"
 
+    dist = haversine_distance_km(incident.latitude, incident.longitude, team.latitude, team.longitude)
+    travel_min = max(10.0, round((dist / 35.0) * 60.0, 1))
+    incident.estimated_arrival_at = datetime.utcnow() + timedelta(minutes=travel_min)
+
     db.commit()
     db.refresh(team)
     db.refresh(incident)
 
-    dist = haversine_distance_km(incident.latitude, incident.longitude, team.latitude, team.longitude)
     log_event(
         db=db,
         entity_type="Team",
         entity_id=team.id,
         action="Dispatched",
-        reason=f"Dispatched {team.name} to Incident #{incident.id} ({incident.title}). Distance: {dist} km.",
-        details={"incident_id": incident.id, "previous_status": prev_status, "distance_km": dist},
+        reason=f"Dispatched {team.name} to Incident #{incident.id} ({incident.title}). Distance: {dist} km. ETA: ~{travel_min} mins.",
+        details={"incident_id": incident.id, "previous_status": prev_status, "distance_km": dist, "eta_minutes": travel_min},
         triggered_by=triggered_by
     )
 

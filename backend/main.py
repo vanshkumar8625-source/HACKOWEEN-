@@ -3,11 +3,12 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from backend.database.db import engine, Base, SessionLocal
+from backend.database.db import engine, Base, SessionLocal, init_db
 from backend.database.models import User
 from backend.seed import seed_database
 from backend.api import (
-    incidents, resources, teams, shelters, routes_evac, sensors, audit_logs, simulation
+    incidents, resources, teams, shelters, routes_evac, sensors, audit_logs, simulation,
+    backup_requests, notifications, ai_assistant
 )
 from backend.socket_server.server import socket_app
 
@@ -16,9 +17,9 @@ logger = logging.getLogger("emergency_coordinator")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB tables
-    logger.info("Initializing database schema...")
-    Base.metadata.create_all(bind=engine)
+    # Initialize DB tables & auto-migrate columns
+    logger.info("Initializing database schema & auto-migrations...")
+    init_db()
     
     # Check if DB needs initial seeding
     db = SessionLocal()
@@ -34,13 +35,13 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down emergency coordination system...")
 
 app = FastAPI(
-    title="Dynamic Emergency Resource Coordination API",
-    description="Unified Autonomous Disaster Management, Simulation, and Multi-Team Coordination Engine",
-    version="2.0.0",
+    title="ADRACS - Autonomous Disaster Response and Coordination System",
+    description="Unified Time-Bound Rescue Deadline Tracking, Team Rating, Handover, and Voice-AI Emergency Coordination Engine",
+    version="2.5.0",
     lifespan=lifespan
 )
 
-# Open CORS for local hackathon demo and testing
+# Open CORS for local demo and testing
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -50,14 +51,17 @@ app.add_middleware(
 )
 
 # Register API Routers
-app.include_router(incidents.router, prefix="/api/incidents", tags=["Incidents & Priority"])
+app.include_router(incidents.router, prefix="/api/incidents", tags=["Incidents & Deadlines"])
 app.include_router(resources.router, prefix="/api/resources", tags=["Supplies & Resources"])
-app.include_router(teams.router, prefix="/api/teams", tags=["Rescue Teams"])
+app.include_router(teams.router, prefix="/api/teams", tags=["Rescue Teams & Performance Ratings"])
 app.include_router(shelters.router, prefix="/api/shelters", tags=["Shelters"])
 app.include_router(routes_evac.router, prefix="/api/routes", tags=["Evacuation Routes"])
 app.include_router(sensors.router, prefix="/api/sensors", tags=["IoT Sensors & Telemetry"])
 app.include_router(audit_logs.router, prefix="/api/audit-logs", tags=["Audit & Event History"])
 app.include_router(simulation.router, prefix="/api/simulation", tags=["Disaster Simulation"])
+app.include_router(backup_requests.router, prefix="/api/backup-requests", tags=["Emergency Backup & Handover"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["Unified Notifications"])
+app.include_router(ai_assistant.router, prefix="/api/ai-assistant", tags=["AI Voice Emergency Assistant"])
 
 # Mount Socket.IO
 app.mount("/socket.io", socket_app)
@@ -65,10 +69,18 @@ app.mount("/socket.io", socket_app)
 @app.get("/")
 def root():
     return {
-        "system": "Dynamic Emergency Resource Coordination Command API",
+        "system": "Dynamic Emergency Resource Coordination - ADRACS",
         "status": "Operational",
-        "version": "2.0.0",
-        "mode": "Simulation / Live Command Hybrid"
+        "version": "2.5.0",
+        "features": [
+            "Emergency Rescue Deadline and Tracking",
+            "Rescue Team 5-Star Performance Rating",
+            "Delay Consequences & Accountability",
+            "Emergency Backup and Team Handover",
+            "AI Voice Emergency Assistant (Meesho-Style)",
+            "Grounded Resource Recommendation",
+            "Unified Notification Center"
+        ]
     }
 
 @app.get("/health")
