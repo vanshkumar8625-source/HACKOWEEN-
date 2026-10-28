@@ -15,8 +15,8 @@ export interface Incident {
   location_name: string;
   status: string;
   required_skill: string;
-  assigned_team_id?: number;
-  backup_team_id?: number;
+  assigned_team_id?: number | null;
+  backup_team_id?: number | null;
   latitude: number;
   longitude: number;
   deadline_at?: string | null;
@@ -33,6 +33,7 @@ export interface Incident {
   casualties_count?: number;
   description?: string;
   reported_by?: string;
+  created_at?: string;
   media_url?: string | null;
   media_type?: string | null;
 }

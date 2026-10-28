@@ -5,7 +5,7 @@ import { io, Socket } from 'socket.io-client';
 import {
   Activity, Users, Home, Package, History,
   ShieldAlert, Droplets, Truck, Layers, HelpCircle,
-  Sparkles, Mic, Bell, Clock, BarChart3, Eye, Camera
+  Mic, BarChart3, Eye
 } from 'lucide-react';
 
 import { SimulationHeader } from '../components/SimulationHeader';
