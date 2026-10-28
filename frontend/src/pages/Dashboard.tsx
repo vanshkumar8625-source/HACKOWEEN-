@@ -484,6 +484,7 @@ export default function Dashboard() {
           simStatus={simStatus}
           onOpenVoiceSOS={() => setIsAIAssistantOpen(true)}
           onOpenReportModal={() => setIsReportModalOpen(true)}
+          onIncidentCreated={refreshData}
           apiUrl={API_URL}
         />
       ) : (

@@ -126,11 +126,11 @@ def check_status_by_ref(
     Requirement 5: Public status check by ID or reference code (e.g. INC-0001 or 1).
     Guarantees no false dispatch claims.
     """
-    clean = ref.upper().replace("RESQ-", "").replace("INC-", "").replace("#", "").strip()
-    try:
-        inc_id = int(clean)
-    except ValueError:
+    import re
+    digits = re.findall(r'\d+', ref)
+    if not digits:
         raise HTTPException(status_code=400, detail="Invalid reference code format. Use e.g. RESQ-0001, INC-0001, or #1.")
+    inc_id = int(digits[0])
 
     inc = db.query(Incident).filter(Incident.id == inc_id).first()
     if not inc:
