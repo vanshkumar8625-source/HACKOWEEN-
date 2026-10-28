@@ -96,16 +96,28 @@ export default function Dashboard() {
         fetch(`${API_URL}/api/notifications/`).then(r => r.ok ? r.json() : []).catch(() => [])
       ]);
 
-      setIncidents(Array.isArray(incRes) ? incRes : []);
-      setTeams(Array.isArray(teamRes) ? teamRes : []);
-      setShelters(Array.isArray(shelterRes) ? shelterRes : []);
-      setResources(Array.isArray(resRes) ? resRes : []);
-      setRoutes(Array.isArray(routeRes) ? routeRes : []);
-      setSensors(Array.isArray(sensorRes) ? sensorRes : []);
-      setAuditLogs(Array.isArray(auditRes) ? auditRes : []);
+      setIncidents(prev => {
+        const fetched = Array.isArray(incRes) ? incRes : [];
+        if (fetched.length === 0) return prev;
+        const fetchedIds = new Set(fetched.map((i: any) => i.id));
+        const localOnly = prev.filter(i => !fetchedIds.has(i.id));
+        return [...localOnly, ...fetched];
+      });
+      if (Array.isArray(teamRes) && teamRes.length > 0) setTeams(teamRes);
+      if (Array.isArray(shelterRes) && shelterRes.length > 0) setShelters(shelterRes);
+      if (Array.isArray(resRes) && resRes.length > 0) setResources(resRes);
+      if (Array.isArray(routeRes) && routeRes.length > 0) setRoutes(routeRes);
+      if (Array.isArray(sensorRes) && sensorRes.length > 0) setSensors(sensorRes);
+      if (Array.isArray(auditRes) && auditRes.length > 0) setAuditLogs(auditRes);
       if (simRes && typeof simRes === 'object') setSimStatus(simRes);
-      setBackupRequests(Array.isArray(backupRes) ? backupRes : []);
-      setNotifications(Array.isArray(notifRes) ? notifRes : []);
+      if (Array.isArray(backupRes) && backupRes.length > 0) setBackupRequests(backupRes);
+      setNotifications(prev => {
+        const fetched = Array.isArray(notifRes) ? notifRes : [];
+        if (fetched.length === 0) return prev;
+        const fetchedIds = new Set(fetched.map((n: any) => n.id));
+        const localOnly = prev.filter(n => !fetchedIds.has(n.id));
+        return [...localOnly, ...fetched];
+      });
     } catch (err) {
       console.error("Failed refreshing dashboard data:", err);
     }
@@ -511,13 +523,52 @@ export default function Dashboard() {
   const unreadNotifsCount = Array.isArray(notifications) ? notifications.filter(n => !n.is_read).length : 0;
   const pendingBackupsCount = Array.isArray(backupRequests) ? backupRequests.filter(b => b.status === 'Pending').length : 0;
 
+  // Synchronized Dashboard Switching with Auto-Refresh
+  const handleRoleChange = (role: 'admin' | 'responder' | 'citizen') => {
+    setUserRole(role);
+    // Instant data refresh whenever user switches between dashboards
+    refreshData();
+  };
+
+  // Immediate Citizen SOS intake & synchronization across all dashboard roles
+  const handleCitizenIncidentCreated = (newIncident?: Incident) => {
+    if (newIncident) {
+      setIncidents(prev => [newIncident, ...prev.filter(i => i.id !== newIncident.id)]);
+      setNotifications(prev => [
+        {
+          id: Date.now(),
+          title: `🚨 Emergency SOS Dispatched: #${newIncident.id}`,
+          message: `${newIncident.severity} ${newIncident.disaster_type} at ${newIncident.location_name}`,
+          category: 'NewReport',
+          severity: newIncident.severity === 'Critical' ? 'Critical' : 'Warning',
+          is_read: false,
+          created_at: new Date().toISOString()
+        },
+        ...prev
+      ]);
+    }
+    refreshData();
+  };
+
+  // Field Responder 1-Click Dispatch Claim
+  const handleAcceptDispatch = async (incidentId: number, teamId: number) => {
+    setIncidents(prev => prev.map(inc => inc.id === incidentId ? { ...inc, assigned_team_id: teamId, status: 'In Progress' } : inc));
+    setTeams(prev => prev.map(t => t.id === teamId ? { ...t, status: 'Dispatched' } : t));
+    try {
+      await fetch(`${API_URL}/api/incidents/${incidentId}/auto-assign-team`, { method: 'POST' });
+    } catch (e) {
+      console.warn("Backend auto-assign error, updated local state:", e);
+    }
+    refreshData();
+  };
+
   return (
     <div className="h-screen w-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans flex flex-col">
       {/* Top Header */}
       <SimulationHeader
         simulationStatus={simStatus}
         userRole={userRole}
-        onRoleChange={setUserRole}
+        onRoleChange={handleRoleChange}
         unreadNotificationsCount={unreadNotifsCount}
         onOpenNotifications={() => setIsNotificationOpen(true)}
         onOpenAIAssistant={() => setIsAIAssistantOpen(true)}
@@ -540,6 +591,7 @@ export default function Dashboard() {
             setBackupRequestIncident(inc);
             setBackupModalTeamId(teamId);
           }}
+          onAcceptDispatch={handleAcceptDispatch}
           onRefresh={refreshData}
           apiUrl={API_URL}
         />
@@ -550,7 +602,7 @@ export default function Dashboard() {
           simStatus={simStatus}
           onOpenVoiceSOS={() => setIsAIAssistantOpen(true)}
           onOpenReportModal={() => setIsReportModalOpen(true)}
-          onIncidentCreated={refreshData}
+          onIncidentCreated={handleCitizenIncidentCreated}
           apiUrl={API_URL}
         />
       ) : (
@@ -934,7 +986,7 @@ export default function Dashboard() {
       <AIAssistantModal
         isOpen={isAIAssistantOpen}
         onClose={() => setIsAIAssistantOpen(false)}
-        onIncidentCreated={refreshData}
+        onIncidentCreated={handleCitizenIncidentCreated}
         apiUrl={API_URL}
       />
 

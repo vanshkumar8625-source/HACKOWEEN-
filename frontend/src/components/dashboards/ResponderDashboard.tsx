@@ -19,6 +19,7 @@ interface ResponderDashboardProps {
   onResolveRescue: (incidentId: number) => void;
   onOpenExplainDelay: (incident: Incident) => void;
   onOpenBackupRequest: (incident: Incident, teamId: number) => void;
+  onAcceptDispatch?: (incidentId: number, teamId: number) => void;
   onRefresh: () => void;
   apiUrl: string;
 }
@@ -33,6 +34,7 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
   onResolveRescue,
   onOpenExplainDelay,
   onOpenBackupRequest,
+  onAcceptDispatch,
   onRefresh
 }) => {
   // Let the user select which team unit they are operating as (default to Team 1)
@@ -52,7 +54,15 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
   const assignedIncidents = incidents.filter(
     i => i.assigned_team_id === currentTeam.id && i.status !== 'Resolved'
   );
-  const activeIncident = assignedIncidents[0] || null;
+
+  // Unassigned active citizen emergencies in sector
+  const unassignedIncidents = incidents.filter(
+    i => (!i.assigned_team_id || i.assigned_team_id === null) && i.status !== 'Resolved'
+  );
+
+  // Active mission: priority to assigned, fallback to first available unassigned citizen SOS if responder is awaiting dispatch
+  const activeIncident = assignedIncidents[0] || (currentTeam.status === 'Available' ? unassignedIncidents[0] : null) || null;
+  const isDirectlyAssigned = !!assignedIncidents.find(i => i.id === activeIncident?.id);
 
   // Completed missions by this team
   const completedIncidents = incidents.filter(
@@ -203,10 +213,10 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
 
           {/* ACTIVE ASSIGNED MISSION CARD */}
           {activeIncident ? (
-            <div className="p-4 bg-slate-900 border-2 border-amber-500/50 rounded-xl space-y-4 shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500 text-slate-950 text-[10px] font-black uppercase tracking-wider rounded-bl-lg flex items-center gap-1">
+            <div className={`p-4 bg-slate-900 border-2 ${isDirectlyAssigned ? 'border-amber-500/50' : 'border-red-500/80 ring-2 ring-red-500/20'} rounded-xl space-y-4 shadow-xl relative overflow-hidden`}>
+              <div className={`absolute top-0 right-0 px-3 py-1 ${isDirectlyAssigned ? 'bg-amber-500 text-slate-950' : 'bg-red-600 text-white animate-pulse'} text-[10px] font-black uppercase tracking-wider rounded-bl-lg flex items-center gap-1`}>
                 <Activity className="w-3 h-3 animate-pulse" />
-                Active Incident #{activeIncident.id}
+                {isDirectlyAssigned ? `Active Incident #${activeIncident.id}` : `🚨 Citizen SOS Awaiting Dispatch`}
               </div>
 
               <div>
@@ -288,11 +298,22 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
               <div className="space-y-2 pt-1">
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Field Actions:</span>
                 
+                {/* 0. Accept Mission Claim (for incoming unassigned citizen emergencies) */}
+                {!isDirectlyAssigned && onAcceptDispatch && (
+                  <button
+                    onClick={() => onAcceptDispatch(activeIncident.id, currentTeam.id)}
+                    className="w-full py-2.5 px-4 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black rounded-xl text-xs transition shadow-lg shadow-red-950/50 flex items-center justify-center gap-2 animate-pulse cursor-pointer"
+                  >
+                    <Radio className="w-4 h-4 animate-spin" />
+                    ⚡ ACCEPT CITIZEN SOS & DISPATCH {currentTeam.name}
+                  </button>
+                )}
+
                 {/* 1. Arrival Button */}
                 {!activeIncident.actual_arrival_at ? (
                   <button
                     onClick={() => onMarkArrival(activeIncident.id)}
-                    className="w-full py-2.5 px-4 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2"
+                    className="w-full py-2.5 px-4 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     MARK ARRIVED ON SCENE (LOCK ETA)
@@ -308,7 +329,7 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => onOpenExplainDelay(activeIncident)}
-                    className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
                     Report Delay Reason
@@ -316,7 +337,7 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
 
                   <button
                     onClick={() => onOpenBackupRequest(activeIncident, currentTeam.id)}
-                    className="p-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5"
+                    className="p-2 bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
                     Request Backup
@@ -326,7 +347,7 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
                 {/* 3. Resolve Rescue Mission */}
                 <button
                   onClick={() => onResolveRescue(activeIncident.id)}
-                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <ShieldAlert className="w-4 h-4" />
                   COMPLETE & RESOLVE RESCUE MISSION
@@ -342,6 +363,44 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
               <p className="text-xs text-slate-400 max-w-xs mx-auto">
                 No active emergencies currently assigned to {currentTeam.name}. Stand by for dispatch alert from Central Command.
               </p>
+            </div>
+          )}
+
+          {/* Incoming Citizen Sector Emergencies Queue */}
+          {unassignedIncidents.length > 0 && (
+            <div className="p-4 bg-slate-900 border border-red-500/40 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-red-400 flex items-center gap-1.5">
+                  <Radio className="w-3.5 h-3.5 animate-pulse" />
+                  Incoming Citizen Requests ({unassignedIncidents.length})
+                </span>
+                <span className="text-[10px] bg-red-500/20 text-red-300 border border-red-500/30 px-2 py-0.5 rounded font-mono font-bold">
+                  Sector Radar
+                </span>
+              </div>
+              <div className="space-y-2">
+                {unassignedIncidents.map(uInc => (
+                  <div key={uInc.id} className="p-2.5 bg-slate-950 rounded-lg border border-slate-800 text-xs flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-white truncate block">{uInc.title}</span>
+                        <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-red-500/20 text-red-300 shrink-0 uppercase">
+                          {uInc.severity}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 truncate block mt-0.5">{uInc.location_name}</span>
+                    </div>
+                    {onAcceptDispatch && (
+                      <button
+                        onClick={() => onAcceptDispatch(uInc.id, currentTeam.id)}
+                        className="px-2.5 py-1.5 bg-red-600 hover:bg-red-500 text-white font-extrabold text-[10px] rounded-lg shrink-0 transition cursor-pointer"
+                      >
+                        Claim
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -427,6 +486,25 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
                 </div>
               </Marker>
             )}
+
+            {/* Unassigned Citizen Emergency Markers */}
+            {unassignedIncidents.filter(u => u.id !== activeIncident?.id).map(uInc => (
+              <Marker key={`u-${uInc.id}`} latitude={uInc.latitude} longitude={uInc.longitude}>
+                <div 
+                  onClick={() => onAcceptDispatch && onAcceptDispatch(uInc.id, currentTeam.id)}
+                  className="relative flex items-center justify-center cursor-pointer group"
+                >
+                  <span className="animate-ping absolute inline-flex h-8 w-8 rounded-full bg-rose-500 opacity-60" />
+                  <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-rose-600 text-white font-bold shadow-xl border-2 border-white text-[10px]">
+                    SOS
+                  </div>
+                  <div className="absolute bottom-8 bg-slate-900 border border-rose-500 text-white text-[10px] px-2 py-0.5 rounded shadow whitespace-nowrap z-50">
+                    <strong>{uInc.title}</strong>
+                    <div className="text-[9px] text-rose-300">Click to Claim Dispatch</div>
+                  </div>
+                </div>
+              </Marker>
+            ))}
 
             {/* Shelter Markers */}
             {shelters.map(sh => (

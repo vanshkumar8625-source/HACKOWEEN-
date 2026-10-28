@@ -12,7 +12,7 @@ interface CitizenDashboardProps {
   simStatus: any;
   onOpenVoiceSOS: () => void;
   onOpenReportModal: () => void;
-  onIncidentCreated?: () => void;
+  onIncidentCreated?: (incident?: any) => void;
   apiUrl: string;
 }
 
@@ -108,6 +108,9 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
           actual_arrival_at: null,
           resolved_at: null
         };
+        if (onIncidentCreated) {
+          onIncidentCreated(data);
+        }
       } else {
         throw new Error(`Server returned HTTP ${res.status}`);
       }
@@ -115,6 +118,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       console.warn("Backend unavailable or network restricted, generating local emergency dispatch ticket:", err);
       const fallbackId = Math.floor(1000 + Math.random() * 9000);
       ref = `RESQ-${fallbackId}`;
+      const now = new Date();
       incidentData = {
         incident_id: fallbackId,
         reference: ref,
@@ -122,7 +126,7 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         status: "Active",
         severity: "Critical",
         location_name: locName,
-        assigned_team: "Pune Disaster Relief Unit 02",
+        assigned_team: "NDRF Swift Water Rescue 01",
         team_status: "Dispatched",
         estimated_arrival: new Date(Date.now() + 15 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         response_deadline: new Date(Date.now() + 45 * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -130,6 +134,28 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
         actual_arrival_at: null,
         resolved_at: null
       };
+      const fallbackIncident = {
+        id: fallbackId,
+        title: "🚨 1-TAP CRITICAL EMERGENCY SOS",
+        disaster_type: "flood",
+        severity: "Critical",
+        priority_score: 95.0,
+        location_name: locName,
+        latitude: lat,
+        longitude: lng,
+        status: "Active",
+        required_skill: "Search & Rescue",
+        assigned_team_id: 1, // Auto-assign to Team 1 so responder sees it immediately
+        deadline_at: new Date(now.getTime() + 45 * 60000).toISOString(),
+        estimated_arrival_at: new Date(now.getTime() + 15 * 60000).toISOString(),
+        deadline_status: "Pending",
+        reported_by: "Citizen 1-Tap SOS",
+        created_at: now.toISOString(),
+        description: "Immediate 1-Tap SOS transmitted by citizen via Public Portal."
+      };
+      if (onIncidentCreated) {
+        onIncidentCreated(fallbackIncident);
+      }
     } finally {
       setPanicSubmitting(false);
     }
@@ -153,11 +179,6 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
       }
     } catch {
       // Audio optional
-    }
-
-    // 5. Notify parent dashboard to refresh live counters and maps
-    if (onIncidentCreated) {
-      onIncidentCreated();
     }
 
     // 6. Smoothly scroll to the live tracker

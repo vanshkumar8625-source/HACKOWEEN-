@@ -8,7 +8,7 @@ import {
 interface AIAssistantModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onIncidentCreated?: () => void;
+  onIncidentCreated?: (incident?: any) => void;
   apiUrl?: string;
 }
 
@@ -261,25 +261,6 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
     if (!dataToSubmit) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`${apiUrl}/api/ai-assistant/submit-voice-report`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: dataToSubmit.title,
-          disaster_type: dataToSubmit.disaster_type,
-          severity: dataToSubmit.severity,
-          location_name: dataToSubmit.location_name,
-          latitude: gpsLocation ? gpsLocation.lat : dataToSubmit.latitude,
-          longitude: gpsLocation ? gpsLocation.lng : dataToSubmit.longitude,
-          description: `AI Assistant Emergency Report: ${dataToSubmit.raw_text || ''}`,
-          people_affected: dataToSubmit.people_affected,
-          casualties_count: dataToSubmit.casualties_count,
-          required_skill: dataToSubmit.required_skill,
-          voice_transcript: dataToSubmit.raw_text,
-          reported_by: language === 'hi' ? 'Citizen Voice SOS (Hindi)' : 'Citizen Voice SOS'
-        })
-      });
-
       let inc: any = null;
       let ref = '';
 
@@ -313,6 +294,26 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
         console.warn("Backend unavailable, generating local emergency fallback ticket:", err);
         const fallbackId = Math.floor(1000 + Math.random() * 9000);
         ref = `RESQ-${fallbackId}`;
+        const now = new Date();
+        inc = {
+          id: fallbackId,
+          title: dataToSubmit.title,
+          disaster_type: dataToSubmit.disaster_type,
+          severity: dataToSubmit.severity,
+          priority_score: dataToSubmit.severity === 'Critical' ? 90 : 70,
+          location_name: dataToSubmit.location_name,
+          latitude: gpsLocation ? gpsLocation.lat : dataToSubmit.latitude,
+          longitude: gpsLocation ? gpsLocation.lng : dataToSubmit.longitude,
+          status: "Active",
+          required_skill: dataToSubmit.required_skill || "General Rescue",
+          assigned_team_id: 1,
+          deadline_at: new Date(now.getTime() + 45 * 60000).toISOString(),
+          estimated_arrival_at: new Date(now.getTime() + 15 * 60000).toISOString(),
+          deadline_status: "Pending",
+          reported_by: language === 'hi' ? 'Citizen Voice SOS (Hindi)' : 'Citizen Voice SOS',
+          created_at: now.toISOString(),
+          description: `AI Assistant Emergency Report: ${dataToSubmit.raw_text || ''}`
+        };
       }
 
       const confirmationEn = `Emergency SOS successfully submitted to Central Command! Your reference ticket is #${ref}. A response deadline has been locked and dispatch teams have been alerted.`;
@@ -333,7 +334,7 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({
 
       speakResponse(confirmationText, language);
       setExtractedData(null);
-      if (onIncidentCreated) onIncidentCreated();
+      if (onIncidentCreated) onIncidentCreated(inc);
     } catch (err: any) {
       alert("Submission error: " + err.message);
     } finally {
