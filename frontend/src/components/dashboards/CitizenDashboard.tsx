@@ -503,6 +503,31 @@ export const CitizenDashboard: React.FC<CitizenDashboardProps> = ({
                 </div>
               </div>
 
+              {/* Attached Visual Evidence (Photo / Video) */}
+              {trackedIncident.media_url && (
+                <div className="rounded-xl overflow-hidden border border-slate-800 bg-black/80 space-y-1">
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900 text-xs border-b border-slate-800">
+                    <span className="font-bold text-rose-400 flex items-center gap-1.5">
+                      {trackedIncident.media_type === 'video' ? '🎥 Attached Incident Video' : '📸 Attached Incident Photo'}
+                    </span>
+                    <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-400 font-mono">Evidence Logged</span>
+                  </div>
+                  {trackedIncident.media_type === 'video' ? (
+                    <video
+                      src={trackedIncident.media_url}
+                      controls
+                      className="w-full max-h-52 object-cover bg-black"
+                    />
+                  ) : (
+                    <img
+                      src={trackedIncident.media_url}
+                      alt="Incident Evidence"
+                      className="w-full max-h-52 object-cover"
+                    />
+                  )}
+                </div>
+              )}
+
               <div className="p-3 bg-teal-950/40 border border-teal-500/30 rounded-lg text-xs text-teal-300 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-teal-400 shrink-0" />
                 <span>

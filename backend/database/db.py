@@ -55,6 +55,8 @@ def auto_migrate_sqlite(engine_obj):
             ("delay_reason", "TEXT"),
             ("delay_category", "VARCHAR(80)"),
             ("delay_reviewed", "BOOLEAN DEFAULT 0"),
+            ("media_url", "TEXT"),
+            ("media_type", "VARCHAR(20)"),
         ],
         "rescue_teams": [
             ("average_rating", "FLOAT DEFAULT 5.0"),

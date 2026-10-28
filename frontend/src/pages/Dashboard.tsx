@@ -206,6 +206,8 @@ export default function Dashboard() {
         status: 'Active',
         reported_by: payload.reported_by || 'Emergency Intake',
         required_skill: payload.required_skill || 'General Rescue',
+        media_url: payload.media_url || null,
+        media_type: payload.media_type || null,
         deadline_at: deadline.toISOString(),
         estimated_arrival_at: eta.toISOString(),
         deadline_status: 'Pending',

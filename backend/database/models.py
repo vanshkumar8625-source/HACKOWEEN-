@@ -57,6 +57,10 @@ class Incident(Base):
     delay_category = Column(String(80), nullable=True)             # e.g., Road Blocked, Severe Weather
     delay_reviewed = Column(Boolean, default=False, nullable=False)
     
+    # Visual Evidence & Telemetry (Photos / Videos)
+    media_url = Column(Text, nullable=True)                        # Data URL or URL of incident photo/video
+    media_type = Column(String(20), nullable=True)                 # 'image' or 'video'
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

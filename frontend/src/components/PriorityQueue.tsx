@@ -31,6 +31,10 @@ export interface Incident {
   delay_reviewed?: boolean;
   people_affected?: number;
   casualties_count?: number;
+  description?: string;
+  reported_by?: string;
+  media_url?: string | null;
+  media_type?: string | null;
 }
 
 interface PriorityQueueProps {
@@ -271,6 +275,33 @@ export const PriorityQueue: React.FC<PriorityQueueProps> = ({
                     </span>
                   )}
                 </div>
+
+                {/* Visual Evidence (Photo or Video) */}
+                {inc.media_url && (
+                  <div className="rounded-lg overflow-hidden border border-zinc-800 bg-black/60 my-1">
+                    <div className="flex items-center justify-between px-2 py-0.5 bg-zinc-950/80 text-[10px] text-zinc-400">
+                      <span className="flex items-center gap-1 font-semibold text-rose-400">
+                        {inc.media_type === 'video' ? '🎥 Ground Video' : '📸 Disaster Photo'}
+                      </span>
+                      <span className="text-[9px] uppercase tracking-wider text-zinc-500 font-mono">Evidence</span>
+                    </div>
+                    {inc.media_type === 'video' ? (
+                      <video
+                        src={inc.media_url}
+                        controls
+                        className="w-full max-h-36 object-cover bg-black"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <img
+                        src={inc.media_url}
+                        alt={inc.title}
+                        className="w-full max-h-36 object-cover hover:scale-105 transition duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
+                  </div>
+                )}
 
                 {/* Contextual Action Buttons */}
                 {!isResolved && (

@@ -17,6 +17,8 @@ class IncidentCreate(BaseModel):
     casualties_count: Optional[int] = 0
     people_affected: Optional[int] = 1
     voice_transcript: Optional[str] = None
+    media_url: Optional[str] = None
+    media_type: Optional[str] = None  # 'image' or 'video'
 
 class IncidentUpdate(BaseModel):
     title: Optional[str] = None
@@ -90,6 +92,8 @@ class IncidentResponse(BaseModel):
     delay_reason: Optional[str] = None
     delay_category: Optional[str] = None
     delay_reviewed: bool = False
+    media_url: Optional[str] = None
+    media_type: Optional[str] = None
     
     created_at: datetime
     updated_at: datetime

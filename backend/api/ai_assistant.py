@@ -75,6 +75,8 @@ async def submit_voice_report(
         casualties_count=payload.casualties_count or 0,
         people_affected=payload.people_affected or 1,
         voice_transcript=payload.voice_transcript,
+        media_url=payload.media_url,
+        media_type=payload.media_type,
         deadline_at=deadline_at,
         estimated_arrival_at=eta_at,
         deadline_status="Pending",

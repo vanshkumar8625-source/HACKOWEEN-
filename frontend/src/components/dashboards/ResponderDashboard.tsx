@@ -225,6 +225,31 @@ export const ResponderDashboard: React.FC<ResponderDashboardProps> = ({
                 </div>
               </div>
 
+              {/* Attached Visual Evidence (Photo / Video) */}
+              {activeIncident.media_url && (
+                <div className="rounded-xl overflow-hidden border border-slate-800 bg-black/80 space-y-1">
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-slate-950 text-xs border-b border-slate-800/80">
+                    <span className="font-bold text-rose-400 flex items-center gap-1.5">
+                      {activeIncident.media_type === 'video' ? '🎥 Ground Recon Video' : '📸 Disaster Scene Photo'}
+                    </span>
+                    <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-slate-300 font-mono">Field Intel</span>
+                  </div>
+                  {activeIncident.media_type === 'video' ? (
+                    <video
+                      src={activeIncident.media_url}
+                      controls
+                      className="w-full max-h-52 object-cover bg-black"
+                    />
+                  ) : (
+                    <img
+                      src={activeIncident.media_url}
+                      alt={activeIncident.title}
+                      className="w-full max-h-52 object-cover"
+                    />
+                  )}
+                </div>
+              )}
+
               {/* Ticking Response Deadline Countdown */}
               <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
                 <div className="flex items-center justify-between text-xs">
